@@ -1,0 +1,3 @@
+
+5. Полезные ресурсы
+РесурсЧто даётchain.link/tutorials/how-to-build-a-crypto-walletПолный туториал Chainlink: BIP39 → HD → отправкаdocs.ethers.orgОфициальная документация ethers.js v6github.com/bethanyuo/HD-walletПример HD-кошелька с шифрованием JSONjpmorais.medium.comДетальный разбор BIP39/32/44 с ethers.js v6iancoleman.io/bip39Онлайн-инструмент для тестирования деривацииquicknode.com/guidesГайд по некастодиальным транзакциям с QuickNodewalletfinder.ai/blogАрхитектурный обзор: EOA vs Smart Accounts, WaaS

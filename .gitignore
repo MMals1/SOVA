@@ -1,0 +1,21 @@
+# Секреты и переменные окружения
+.env
+
+# Python окружение
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Keystore файлы — зашифрованные ключи, не должны попадать в репозиторий
+wallets/
+keystore/
+wallet.json
+my_wallet.json
+*.keystore
+
+# Временные файлы Microsoft Office
+~$*
+
+# macOS
+.DS_Store

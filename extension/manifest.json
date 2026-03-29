@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "ETH Wallet",
+  "version": "1.0.0",
+  "description": "Некастодиальный Ethereum кошелёк · Sepolia testnet",
+
+  "permissions": ["storage", "alarms", "clipboardWrite"],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "ETH Wallet"
+  },
+
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+
+  "content_security_policy": {
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https://eth-sepolia.g.alchemy.com; object-src 'none'; frame-ancestors 'none'; form-action 'none'"
+  }
+}
