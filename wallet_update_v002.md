@@ -598,7 +598,7 @@ if (!unlocked || expired) → screen-unlock
 - `wallet.connect(provider).sendTransaction(tx)` — отправка ETH
 - `contract.transfer(to, amount)` — отправка ERC-20
 
-**ВАЖНО:** `fetchAlchemyTransfers` в popup.js использует хардкодированный `RPC_URL` (константу), а **не** сохранённый в storage. Это баг: если пользователь задал кастомный ключ, история загружается через дефолтный. История транзакций — единственное место где кастомный ключ не применяется.
+**ИСПРАВЛЕНО (v0.0.2):** `fetchAlchemyTransfers` читает `rpcUrl` из `chrome.storage.local` и использует его как адрес запроса, падая обратно на `RPC_URL` если кастомный ключ не задан. История транзакций корректно использует выбранный пользователем ключ.
 
 ---
 
@@ -653,7 +653,7 @@ if (!inp) { allCorrect = false; return; } // защита если DOM не го
 | # | Описание | Файл | Приоритет |
 |---|---|---|---|
 | 1 | **Встроенный API ключ виден в исходниках** (`RPC_URL` в popup.js и service-worker.js). Любой кто распакует расширение (.crx → zip) получит ключ. Решение: backend proxy или пользовательский ключ. | popup.js, service-worker.js | Высокий |
-| 2 | **`fetchAlchemyTransfers` игнорирует кастомный rpcUrl** — всегда использует константу `RPC_URL` вместо `rpcUrl` из storage. История грузится через дефолтный ключ даже если задан кастомный. | popup.js | Средний |
+| 2 | ~~**`fetchAlchemyTransfers` игнорирует кастомный rpcUrl**~~ **ИСПРАВЛЕНО:** функция теперь читает `rpcUrl` из storage перед fetch. | popup.js | ✅ Закрыт |
 | 3 | **Нет IP-приватности** — все RPC запросы идут напрямую от браузера к Alchemy. Alchemy видит IP пользователя → адрес кошелька. | popup.js, service-worker.js | Средний |
 | 4 | **Пароль только минимум 8 символов** — нет проверки на цифры, регистр, словарные слова. `aaaaaaaa` проходит. | popup.js | Средний |
 | 5 | **Нет экрана подтверждения транзакции** — транзакция отправляется без показа деталей для подтверждения (сумма, газ, адрес). | popup.js, popup.html | Средний |
@@ -711,9 +711,10 @@ grep -n "case '" extension/background/service-worker.js  # что обрабат
 ```
 Polyfill должен быть загружен ДО popup.js — иначе `chrome` будет undefined.
 
-### Проверка баги #2 (fetchAlchemyTransfers)
-В `popup.js` функция `fetchAlchemyTransfers` использует глобальную константу `RPC_URL`:
+### ✅ Баг #2 закрыт (fetchAlchemyTransfers)
+В `popup.js` функция `fetchAlchemyTransfers` теперь читает `rpcUrl` из storage:
 ```javascript
-const res = await fetch(RPC_URL, { ... }); // ← не учитывает кастомный rpcUrl из storage
+const { rpcUrl } = await getLocal(['rpcUrl']);
+const activeUrl = rpcUrl || RPC_URL;
+const res = await fetch(activeUrl, { ... }); // учитывает кастомный ключ
 ```
-Исправление: читать `rpcUrl` из storage перед fetch, аналогично тому как это сделано в SW.

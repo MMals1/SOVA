@@ -561,6 +561,12 @@ async function loadTransactions(address) {
 }
 
 async function fetchAlchemyTransfers(address, direction) {
+  // Берём актуальный RPC URL из storage, чтобы учесть кастомный ключ пользователя.
+  // provider уже содержит правильный URL (обновляется в DOMContentLoaded и _saveRpcChoice),
+  // но для fetch нужен именно строковый URL.
+  const { rpcUrl } = await getLocal(['rpcUrl']);
+  const activeUrl = rpcUrl || RPC_URL;
+
   const body = {
     id: 1, jsonrpc: '2.0',
     method: 'alchemy_getAssetTransfers',
@@ -574,7 +580,7 @@ async function fetchAlchemyTransfers(address, direction) {
       [direction === 'from' ? 'fromAddress' : 'toAddress']: address,
     }],
   };
-  const res = await fetch(RPC_URL, {
+  const res = await fetch(activeUrl, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
