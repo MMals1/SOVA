@@ -6,30 +6,152 @@ const RPC_DEFAULTS = (globalThis.WOLF_WALLET_RPC_DEFAULTS && typeof globalThis.W
 const WalletCore = (globalThis.WolfWalletCore && typeof globalThis.WolfWalletCore === 'object')
   ? globalThis.WolfWalletCore
   : {};
+const PopupStorage = (globalThis.WolfPopupStorage && typeof globalThis.WolfPopupStorage === 'object')
+  ? globalThis.WolfPopupStorage
+  : {
+    getLocal(keys) { return new Promise((resolve) => chrome.storage.local.get(keys, resolve)); },
+    setLocal(data) { return new Promise((resolve) => chrome.storage.local.set(data, resolve)); },
+    removeLocal(keys) { return new Promise((resolve) => chrome.storage.local.remove(keys, resolve)); },
+    getSession(keys) { return new Promise((resolve) => chrome.storage.session.get(keys, resolve)); },
+    setSession(data) { return new Promise((resolve) => chrome.storage.session.set(data, resolve)); },
+  };
+const PopupUiMessages = (globalThis.WolfPopupUiMessages && typeof globalThis.WolfPopupUiMessages === 'object')
+  ? globalThis.WolfPopupUiMessages
+  : {
+    showError(prefix, msg) {
+      const el = document.getElementById(`${prefix}-error`);
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    },
+    setStatus(prefix, msg) {
+      const el = document.getElementById(`${prefix}-status`);
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+    },
+    showSuccess(prefix, msg) {
+      const el = document.getElementById(`${prefix}-success`);
+      if (el) { el.textContent = '✓ ' + msg; el.style.display = 'block'; }
+    },
+    clearMessages(prefix) {
+      ['error', 'status', 'success'].forEach(type => {
+        const el = document.getElementById(`${prefix}-${type}`);
+        if (el) el.style.display = 'none';
+      });
+    },
+    setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (btn) btn.disabled = loading;
+    },
+  };
+const PopupAvatar = (globalThis.WolfPopupAvatar && typeof globalThis.WolfPopupAvatar === 'object')
+  ? globalThis.WolfPopupAvatar
+  : {
+    setAvatar() {},
+  };
+const PopupClipboard = (globalThis.WolfPopupClipboard && typeof globalThis.WolfPopupClipboard === 'object')
+  ? globalThis.WolfPopupClipboard
+  : {
+    async copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        Object.assign(ta.style, { position: 'fixed', opacity: '0' });
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      return true;
+    },
+  };
+const PopupTemplates = (globalThis.WolfPopupTemplates && typeof globalThis.WolfPopupTemplates === 'object')
+  ? globalThis.WolfPopupTemplates
+  : {
+    renderFeedbackMounts() {},
+    renderNetworkPickers() {},
+  };
+const PopupState = (globalThis.WolfPopupSharedState && typeof globalThis.WolfPopupSharedState === 'object')
+  ? globalThis.WolfPopupSharedState
+  : {
+    provider: null,
+    activeAccountIndex: 0,
+    selectedChain: 'ethereum',
+    selectedNetwork: 'eth-sepolia',
+    rpcByNetwork: {},
+  };
+const PopupNetworkState = (globalThis.WolfPopupNetworkState && typeof globalThis.WolfPopupNetworkState === 'object')
+  ? globalThis.WolfPopupNetworkState
+  : {};
+const PopupTxHistory = (globalThis.WolfPopupTxHistory && typeof globalThis.WolfPopupTxHistory === 'object')
+  ? globalThis.WolfPopupTxHistory
+  : {};
+const PopupTokenState = (globalThis.WolfPopupTokenState && typeof globalThis.WolfPopupTokenState === 'object')
+  ? globalThis.WolfPopupTokenState
+  : {};
+const PopupSendFlow = (globalThis.WolfPopupSendFlow && typeof globalThis.WolfPopupSendFlow === 'object')
+  ? globalThis.WolfPopupSendFlow
+  : {};
+const PopupUiState = (globalThis.WolfPopupUiState && typeof globalThis.WolfPopupUiState === 'object')
+  ? globalThis.WolfPopupUiState
+  : {};
+const PopupEventBinder = (globalThis.WolfPopupEventBinder && typeof globalThis.WolfPopupEventBinder === 'object')
+  ? globalThis.WolfPopupEventBinder
+  : {};
+
+const getLocal = PopupStorage.getLocal.bind(PopupStorage);
+const setLocal = PopupStorage.setLocal.bind(PopupStorage);
+const removeLocal = PopupStorage.removeLocal.bind(PopupStorage);
+const getSession = PopupStorage.getSession.bind(PopupStorage);
+const setSession = PopupStorage.setSession.bind(PopupStorage);
+
+const showError = PopupUiMessages.showError.bind(PopupUiMessages);
+const setStatus = PopupUiMessages.setStatus.bind(PopupUiMessages);
+const showSuccess = PopupUiMessages.showSuccess.bind(PopupUiMessages);
+const clearMessages = PopupUiMessages.clearMessages.bind(PopupUiMessages);
+const setLoading = PopupUiMessages.setLoading.bind(PopupUiMessages);
+
+const setAvatar = PopupAvatar.setAvatar.bind(PopupAvatar);
+const copyText = PopupClipboard.copyText.bind(PopupClipboard);
 
 function getDefaultRpcUrl(networkKey, fallback) {
   return RPC_DEFAULTS[networkKey] || fallback;
 }
 
 // ── Конфигурация ──────────────────────────────────────────────────────────────
-const NETWORKS = {
-  'eth-mainnet': {
-    chain: 'ethereum',
-    chainId: 1,
-    label: 'Ethereum Mainnet',
-    badge: 'Ethereum Mainnet',
-    defaultRpcUrl: getDefaultRpcUrl('eth-mainnet', 'https://ethereum-rpc.publicnode.com'),
-  },
-  'eth-sepolia': {
-    chain: 'ethereum',
-    chainId: 11155111,
-    label: 'Ethereum Sepolia',
-    badge: 'Sepolia testnet',
-    defaultRpcUrl: getDefaultRpcUrl('eth-sepolia', 'https://ethereum-sepolia-rpc.publicnode.com'),
-  },
-};
-const DEFAULT_NETWORK_KEY = 'eth-sepolia';
-const DEFAULT_CHAIN_KEY = 'ethereum';
+const NETWORKS = (PopupNetworkState && PopupNetworkState.NETWORKS)
+  ? PopupNetworkState.NETWORKS
+  : {
+    'eth-mainnet': {
+      chain: 'ethereum',
+      chainId: 1,
+      label: 'Ethereum Mainnet',
+      badge: 'Ethereum Mainnet',
+      isTestnet: false,
+      defaultRpcUrl: getDefaultRpcUrl('eth-mainnet', 'https://ethereum-rpc.publicnode.com'),
+    },
+    'eth-sepolia': {
+      chain: 'ethereum',
+      chainId: 11155111,
+      label: 'Ethereum Sepolia',
+      badge: 'Sepolia testnet',
+      isTestnet: true,
+      defaultRpcUrl: getDefaultRpcUrl('eth-sepolia', 'https://ethereum-sepolia-rpc.publicnode.com'),
+    },
+    bsc: {
+      chain: 'bsc',
+      chainId: 56,
+      label: 'BNB Chain',
+      badge: 'BNB Chain Mainnet',
+      isTestnet: false,
+      defaultRpcUrl: getDefaultRpcUrl('bsc', 'https://bnb-mainnet.g.alchemy.com/v2/lrmoWsP5qrMt8_aezkh4p'),
+    },
+  };
+const DEFAULT_NETWORK_KEY = (PopupNetworkState && PopupNetworkState.DEFAULT_NETWORK_KEY)
+  ? PopupNetworkState.DEFAULT_NETWORK_KEY
+  : 'eth-sepolia';
+const DEFAULT_CHAIN_KEY = (PopupNetworkState && PopupNetworkState.DEFAULT_CHAIN_KEY)
+  ? PopupNetworkState.DEFAULT_CHAIN_KEY
+  : 'ethereum';
 const AUTO_LOCK_MINUTES = 5;
 const TX_SYNC_STATE_KEY = 'txSyncState';
 const TX_HISTORY_CACHE_KEY = 'txHistoryCache';
@@ -37,11 +159,12 @@ const TX_HISTORY_LIMIT = 1000;
 const TX_PAGE_SIZE = 10;
 const TX_INITIAL_MAX_COUNT = '0x3e8';
 const TX_INCREMENTAL_MAX_COUNT = '0x64';
-const MAINNET_SEND_GUARD_KEY = 'mainnetSendGuardAccepted';
+const LEGACY_MAINNET_SEND_GUARD_KEY = 'mainnetSendGuardAccepted';
+const MAINNET_SEND_GUARD_KEY_PREFIX = 'mainnetSendGuardAccepted';
 const NETWORK_PICKER_OPTIONS = {
   'eth-mainnet': { label: 'Ethereum Mainnet', mark: '🔷' },
   'eth-sepolia': { label: 'Ethereum Sepolia', mark: '◻️' },
-  bsc: { label: 'BNB Chain (скоро)', mark: '🟡' },
+  bsc: { label: 'BNB Chain', mark: '🟡' },
 };
 
 const ERC20_ABI = [
@@ -65,9 +188,69 @@ let _autoRefreshBlockListener = null;
 let _autoRefreshTimer = null;
 let _autoRefreshInFlight = false;
 let _lastAutoRefreshAt = 0;
+let _accountsCache = null;
+const _providerCache = new Map();
 const _txLoadPromises = new Map();
 const _txPaginationState = new Map();
 const _txRenderedState = new Map();
+
+// Keep module shared state in sync with popup runtime locals.
+Object.defineProperties(PopupState, {
+  provider: {
+    configurable: true,
+    get: () => provider,
+    set: (value) => { provider = value; },
+  },
+  activeAccountIndex: {
+    configurable: true,
+    get: () => activeAccountIndex,
+    set: (value) => { activeAccountIndex = value; },
+  },
+  selectedChain: {
+    configurable: true,
+    get: () => selectedChain,
+    set: (value) => { selectedChain = value; },
+  },
+  selectedNetwork: {
+    configurable: true,
+    get: () => selectedNetwork,
+    set: (value) => { selectedNetwork = value; },
+  },
+  rpcByNetwork: {
+    configurable: true,
+    get: () => rpcByNetwork,
+    set: (value) => { rpcByNetwork = value; },
+  },
+});
+
+globalThis.getAutoRefreshAddress = () => _autoRefreshAddress;
+globalThis.getAccountsCached = getAccountsCached;
+globalThis.setAccountsCache = setAccountsCache;
+
+function getOrCreatePopupProvider(rpcUrl) {
+  const key = String(rpcUrl || '').trim();
+  if (!key) return new ethers.JsonRpcProvider(rpcUrl);
+  const cached = _providerCache.get(key);
+  if (cached) return cached;
+  const created = new ethers.JsonRpcProvider(key);
+  _providerCache.set(key, created);
+  return created;
+}
+
+globalThis.getOrCreatePopupProvider = getOrCreatePopupProvider;
+
+async function getAccountsCached(forceRefresh = false) {
+  if (!forceRefresh && Array.isArray(_accountsCache)) {
+    return _accountsCache;
+  }
+  const { accounts = [] } = await getLocal(['accounts']);
+  _accountsCache = Array.isArray(accounts) ? accounts : [];
+  return _accountsCache;
+}
+
+function setAccountsCache(accounts) {
+  _accountsCache = Array.isArray(accounts) ? accounts : [];
+}
 
 function getTxScopeKey(address, networkKey = selectedNetwork) {
   if (typeof WalletCore.getTxScopeKey === 'function') {
@@ -82,15 +265,25 @@ function getTxExplorerBaseUrl(networkKey = selectedNetwork) {
   }
   if (networkKey === 'eth-mainnet') return 'https://etherscan.io/tx/';
   if (networkKey === 'eth-sepolia') return 'https://sepolia.etherscan.io/tx/';
+  if (networkKey === 'bsc') return 'https://bscscan.com/tx/';
   return 'https://etherscan.io/tx/';
 }
 
 function getTokenLogoUrls(tokenAddress, networkKey = selectedNetwork) {
   if (!tokenAddress) return [];
-  if (!String(networkKey).startsWith('eth-')) return [];
+  if (!String(networkKey).startsWith('eth-') && networkKey !== 'bsc') return [];
   try {
     const checksum = ethers.getAddress(tokenAddress);
+    if (typeof WalletCore.getTokenLogoUrls === 'function') {
+      return WalletCore.getTokenLogoUrls(checksum, networkKey);
+    }
     const lower = checksum.toLowerCase();
+    if (networkKey === 'bsc') {
+      return [
+        `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${checksum}/logo.png`,
+        `https://tokens.1inch.io/${lower}.png`,
+      ];
+    }
     return [
       `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${checksum}/logo.png`,
       `https://tokens.1inch.io/${lower}.png`,
@@ -101,6 +294,9 @@ function getTokenLogoUrls(tokenAddress, networkKey = selectedNetwork) {
 }
 
 async function getTokensForSelectedNetwork() {
+  if (typeof PopupTokenState.getTokensForSelectedNetwork === 'function') {
+    return PopupTokenState.getTokensForSelectedNetwork();
+  }
   const { tokensByNetwork = {}, tokens: legacyTokens = [] } = await getLocal(['tokensByNetwork', 'tokens']);
   let map = (tokensByNetwork && typeof tokensByNetwork === 'object') ? { ...tokensByNetwork } : {};
 
@@ -111,13 +307,23 @@ async function getTokensForSelectedNetwork() {
     await removeLocal('tokens');
   }
 
+  if (typeof WalletCore.getTokensForNetwork === 'function') {
+    return WalletCore.getTokensForNetwork(map, selectedNetwork);
+  }
   return Array.isArray(map[selectedNetwork]) ? map[selectedNetwork] : [];
 }
 
 async function setTokensForSelectedNetwork(tokens) {
+  if (typeof PopupTokenState.setTokensForSelectedNetwork === 'function') {
+    return PopupTokenState.setTokensForSelectedNetwork(tokens);
+  }
   const { tokensByNetwork = {} } = await getLocal(['tokensByNetwork']);
-  const map = (tokensByNetwork && typeof tokensByNetwork === 'object') ? { ...tokensByNetwork } : {};
-  map[selectedNetwork] = Array.isArray(tokens) ? tokens : [];
+  const map = (typeof WalletCore.setTokensForNetwork === 'function')
+    ? WalletCore.setTokensForNetwork(tokensByNetwork, selectedNetwork, tokens)
+    : {
+      ...(tokensByNetwork && typeof tokensByNetwork === 'object' ? tokensByNetwork : {}),
+      [selectedNetwork]: Array.isArray(tokens) ? tokens : [],
+    };
   await setLocal({ tokensByNetwork: map });
 }
 
@@ -128,9 +334,17 @@ let _pendingTx        = null; // данные транзакции, ожидаю
 
 // ── Инициализация (с миграцией старого формата) ───────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  bindInlineHandlersCompat();
+  PopupTemplates.renderNetworkPickers({
+    contexts: ['setup', 'wallet'],
+    defaultNetworkKey: DEFAULT_NETWORK_KEY,
+    networkKeys: ['eth-mainnet', 'eth-sepolia', 'bsc'],
+    networks: NETWORKS,
+    optionResolver: getNetworkPickerOption,
+  });
+  PopupTemplates.renderFeedbackMounts();
+  bindDeclarativeHandlers();
   await initializeNetworkState();
-  provider = new ethers.JsonRpcProvider(getRpcUrlForNetwork(selectedNetwork));
+  provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
   initNetworkPickerInteractions();
   syncNetworkControls();
 
@@ -143,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  const { accounts } = await getLocal(['accounts']);
+  const accounts = await getAccountsCached(true);
   if (!accounts || accounts.length === 0) {
     showScreen('screen-setup');
     return;
@@ -174,7 +388,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-function bindInlineHandlersCompat() {
+function bindDeclarativeHandlers() {
+  if (typeof PopupEventBinder.bindDeclarativeHandlers === 'function') {
+    return PopupEventBinder.bindDeclarativeHandlers();
+  }
   const parseArgs = (argsRaw, event) => {
     const raw = String(argsRaw || '').trim();
     if (!raw) return [];
@@ -224,13 +441,16 @@ function bindInlineHandlersCompat() {
     });
   };
 
-  bindAttribute('onclick', 'click');
-  bindAttribute('onchange', 'change');
-  bindAttribute('oninput', 'input');
-  bindAttribute('onkeydown', 'keydown');
+  bindAttribute('data-onclick', 'click');
+  bindAttribute('data-onchange', 'change');
+  bindAttribute('data-oninput', 'input');
+  bindAttribute('data-onkeydown', 'keydown');
 }
 
 async function initializeNetworkState() {
+  if (typeof PopupNetworkState.initializeNetworkState === 'function') {
+    return PopupNetworkState.initializeNetworkState();
+  }
   const stored = await getLocal(['selectedChain', 'selectedNetwork', 'rpcByNetwork', 'rpcUrl']);
 
   selectedChain = stored.selectedChain === DEFAULT_CHAIN_KEY ? DEFAULT_CHAIN_KEY : DEFAULT_CHAIN_KEY;
@@ -255,16 +475,39 @@ async function initializeNetworkState() {
 }
 
 function getRpcUrlForNetwork(networkKey, map = rpcByNetwork) {
+  if (typeof PopupNetworkState.getRpcUrlForNetwork === 'function') {
+    return PopupNetworkState.getRpcUrlForNetwork(networkKey, map);
+  }
   const key = NETWORKS[networkKey] ? networkKey : DEFAULT_NETWORK_KEY;
   return map?.[key] || NETWORKS[key].defaultRpcUrl;
 }
 
 function getCurrentNetworkMeta() {
+  if (typeof PopupNetworkState.getCurrentNetworkMeta === 'function') {
+    return PopupNetworkState.getCurrentNetworkMeta();
+  }
   return NETWORKS[selectedNetwork] || NETWORKS[DEFAULT_NETWORK_KEY];
+}
+
+function getNativeAssetSymbol(networkKey = selectedNetwork) {
+  if (typeof PopupNetworkState.getNativeAssetSymbol === 'function') {
+    return PopupNetworkState.getNativeAssetSymbol(networkKey);
+  }
+  return networkKey === 'bsc' ? 'BNB' : 'ETH';
+}
+
+function getMainnetSendGuardKey(networkKey = selectedNetwork) {
+  if (typeof PopupNetworkState.getMainnetSendGuardKey === 'function') {
+    return PopupNetworkState.getMainnetSendGuardKey(networkKey);
+  }
+  return `${MAINNET_SEND_GUARD_KEY_PREFIX}:${networkKey}`;
 }
 
 // ── Навигация ─────────────────────────────────────────────────────────────────
 function showScreen(id) {
+  if (typeof PopupUiState.showScreen === 'function') {
+    return PopupUiState.showScreen(id);
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('acct-menu')?.classList.add('hidden');
@@ -274,6 +517,9 @@ function showScreen(id) {
 
 // ── Переключение табов Setup ──────────────────────────────────────────────────
 function switchTab(tab) {
+  if (typeof PopupUiState.switchTab === 'function') {
+    return PopupUiState.switchTab(tab);
+  }
   document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.querySelector(`.tabs [data-tab="${tab}"]`).classList.add('active');
@@ -282,10 +528,25 @@ function switchTab(tab) {
 
 // ── Переключение вкладок кошелька ─────────────────────────────────────────────
 function switchWalletTab(tab) {
+  if (typeof PopupUiState.switchWalletTab === 'function') {
+    return PopupUiState.switchWalletTab(tab);
+  }
   document.querySelectorAll('.wallet-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.wallet-tab-content').forEach(c => c.classList.remove('active'));
   document.querySelector(`.wallet-tabs [data-tab="${tab}"]`).classList.add('active');
   document.getElementById(`wallet-tab-${tab}`).classList.add('active');
+
+  const appRoot = document.getElementById('app');
+  appRoot?.classList.add('owl-state-tokens');
+  appRoot?.classList.remove('owl-state-history');
+
+  const logoImg = document.querySelector('.global-avatar img');
+  if (logoImg) {
+    if (logoImg.getAttribute('src') !== 'logo_new.png') {
+      logoImg.setAttribute('src', 'logo_new.png');
+    }
+    logoImg.dataset.state = 'tokens';
+  }
 }
 
 // ── Валидация пароля (только для создания/импорта, не для unlock) ──────────────
@@ -318,8 +579,9 @@ async function createWallet() {
     setStatus('create', 'Шифрование keystore…');
     const keystore = await wallet.encrypt(password);
 
-    const { accounts = [] } = await getLocal(['accounts']);
+    const accounts = await getAccountsCached(true);
     accounts.push({ address: wallet.address, keystore, name: `Account ${accounts.length + 1}` });
+    setAccountsCache(accounts);
     activeAccountIndex = accounts.length - 1;
     await setLocal({ accounts, activeAccount: activeAccountIndex });
 
@@ -370,8 +632,9 @@ async function importWallet() {
     setStatus('import', 'Шифрование keystore…');
     const keystore = await wallet.encrypt(password);
 
-    const { accounts = [] } = await getLocal(['accounts']);
+    const accounts = await getAccountsCached(true);
     accounts.push({ address: wallet.address, keystore, name: `Account ${accounts.length + 1}` });
+    setAccountsCache(accounts);
     activeAccountIndex = accounts.length - 1;
     await setLocal({ accounts, activeAccount: activeAccountIndex });
 
@@ -418,7 +681,7 @@ async function unlockWallet() {
   setLoading('btn-unlock', false);
   setStatus('unlock', '');
 
-  const { accounts } = await getLocal(['accounts']);
+  const accounts = await getAccountsCached();
   showScreen('screen-wallet');
   loadWalletScreen(accounts[activeAccountIndex].address);
 }
@@ -428,7 +691,7 @@ async function loadWalletScreen(address) {
   sendToSW({ type: 'reset-lock-timer' });
   setAvatar('wallet-avatar', address); // header-avatar не существует в HTML — убран
 
-  const { accounts } = await getLocal(['accounts']);
+  const accounts = await getAccountsCached();
   const acctName = accounts[activeAccountIndex]?.name || `Account ${activeAccountIndex + 1}`;
   document.getElementById('header-acct-name').textContent = acctName;
   document.getElementById('wallet-address').textContent = shortAddr(address);
@@ -452,7 +715,7 @@ async function refreshActiveAccountData(force = false) {
   const now = Date.now();
   if (!force && (now - _lastAutoRefreshAt) < AUTO_REFRESH_MIN_INTERVAL_MS) return;
 
-  const { accounts = [] } = await getLocal(['accounts']);
+  const accounts = await getAccountsCached();
   const address = accounts[activeAccountIndex]?.address;
   if (!address || address.toLowerCase() !== _autoRefreshAddress) return;
 
@@ -512,7 +775,7 @@ async function loadBalance(address) {
 }
 
 async function refreshBalance() {
-  const { accounts } = await getLocal(['accounts']);
+  const accounts = await getAccountsCached();
   const address = accounts[activeAccountIndex]?.address;
   if (!address) return;
   document.getElementById('wallet-balance').textContent = '…';
@@ -528,6 +791,9 @@ async function refreshBalance() {
 
 // ── ERC-20 токены ─────────────────────────────────────────────────────────────
 async function loadTokenBalances(address) {
+  if (typeof PopupTokenState.loadTokenBalances === 'function') {
+    return PopupTokenState.loadTokenBalances(address);
+  }
   const tokens = await getTokensForSelectedNetwork();
   const el = document.getElementById('token-list');
   el.textContent = ''; // безопасная очистка — без innerHTML
@@ -635,11 +901,17 @@ async function loadTokenBalances(address) {
 }
 
 function onTokenAddrChange() {
+  if (typeof PopupTokenState.onTokenAddrChange === 'function') {
+    return PopupTokenState.onTokenAddrChange();
+  }
   const val = document.getElementById('token-address').value.trim();
   document.getElementById('btn-fetch-token').disabled = !ethers.isAddress(val);
 }
 
 async function fetchTokenInfo() {
+  if (typeof PopupTokenState.fetchTokenInfo === 'function') {
+    return PopupTokenState.fetchTokenInfo();
+  }
   const addr = document.getElementById('token-address').value.trim();
   clearMessages('add-token');
   if (!ethers.isAddress(addr)) { showError('add-token', 'Неверный адрес контракта'); return; }
@@ -657,6 +929,9 @@ async function fetchTokenInfo() {
 }
 
 async function addToken() {
+  if (typeof PopupTokenState.addToken === 'function') {
+    return PopupTokenState.addToken();
+  }
   const addr     = document.getElementById('token-address').value.trim();
   const symbol   = document.getElementById('token-symbol').value.trim().toUpperCase();
   const decimals = parseInt(document.getElementById('token-decimals').value) || 18;
@@ -683,6 +958,9 @@ async function addToken() {
 }
 
 async function removeToken(addr) {
+  if (typeof PopupTokenState.removeToken === 'function') {
+    return PopupTokenState.removeToken(addr);
+  }
   const tokens = await getTokensForSelectedNetwork();
   await setTokensForSelectedNetwork(tokens.filter(t => t.address.toLowerCase() !== addr.toLowerCase()));
   const { accounts } = await getLocal(['accounts']);
@@ -801,6 +1079,9 @@ async function addSubAccount() {
 }
 
 async function loadTransactions(address) {
+  if (typeof PopupTxHistory.loadTransactions === 'function') {
+    return PopupTxHistory.loadTransactions(address);
+  }
   const scopeKey = getTxScopeKey(address);
   if (_txLoadPromises.has(scopeKey)) {
     return _txLoadPromises.get(scopeKey);
@@ -934,12 +1215,18 @@ async function loadTransactions(address) {
 }
 
 function setTxRefreshIndicator(active) {
+  if (typeof PopupTxHistory.setTxRefreshIndicator === 'function') {
+    return PopupTxHistory.setTxRefreshIndicator(active);
+  }
   const el = document.getElementById('tx-refresh-indicator');
   if (!el) return;
   el.classList.toggle('active', !!active);
 }
 
 function renderTransactions(el, address, txs, networkKey = selectedNetwork) {
+  if (typeof PopupTxHistory.renderTransactions === 'function') {
+    return PopupTxHistory.renderTransactions(el, address, txs, networkKey);
+  }
   el.textContent = '';
   const scopeKey = getTxScopeKey(address, networkKey);
   const allTxs = Array.isArray(txs) ? txs : [];
@@ -1034,6 +1321,9 @@ function renderTransactions(el, address, txs, networkKey = selectedNetwork) {
 }
 
 function updateTxPaginationUI(scopeKey, totalTxs, currentPage, totalPages) {
+  if (typeof PopupTxHistory.updateTxPaginationUI === 'function') {
+    return PopupTxHistory.updateTxPaginationUI(scopeKey, totalTxs, currentPage, totalPages);
+  }
   const container = document.getElementById('tx-pagination');
   const prevBtn = document.getElementById('tx-page-prev');
   const nextBtn = document.getElementById('tx-page-next');
@@ -1054,6 +1344,9 @@ function updateTxPaginationUI(scopeKey, totalTxs, currentPage, totalPages) {
 }
 
 async function changeTxPage(delta) {
+  if (typeof PopupTxHistory.changeTxPage === 'function') {
+    return PopupTxHistory.changeTxPage(delta);
+  }
   if (!delta) return;
 
   const { accounts = [] } = await getLocal(['accounts']);
@@ -1076,19 +1369,12 @@ async function changeTxPage(delta) {
 }
 
 async function copyTxHash(hash, buttonEl) {
+  if (typeof PopupTxHistory.copyTxHash === 'function') {
+    return PopupTxHistory.copyTxHash(hash, buttonEl);
+  }
   if (!hash) return;
   const prevText = buttonEl?.textContent || 'copy';
-  try {
-    await navigator.clipboard.writeText(hash);
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = hash;
-    Object.assign(ta.style, { position: 'fixed', opacity: '0' });
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-  }
+  await copyText(hash);
   if (!buttonEl) return;
   buttonEl.textContent = 'copied';
   setTimeout(() => {
@@ -1097,6 +1383,9 @@ async function copyTxHash(hash, buttonEl) {
 }
 
 async function fetchAlchemyTransfers(address, direction, opts = {}) {
+  if (typeof PopupTxHistory.fetchAlchemyTransfers === 'function') {
+    return PopupTxHistory.fetchAlchemyTransfers(address, direction, opts);
+  }
   // Берём актуальную сеть и её RPC из storage (учитывая кастомный URL для конкретной сети).
   const stored = await getLocal(['selectedNetwork', 'rpcByNetwork']);
   const networkKey = NETWORKS[stored.selectedNetwork] ? stored.selectedNetwork : selectedNetwork;
@@ -1127,14 +1416,18 @@ async function fetchAlchemyTransfers(address, direction, opts = {}) {
 
 // ── Отправка транзакции ───────────────────────────────────────────────────────
 async function showSendScreen() {
+  if (typeof PopupSendFlow.showSendScreen === 'function') {
+    return PopupSendFlow.showSendScreen();
+  }
   const tokens = await getTokensForSelectedNetwork();
   const select = document.getElementById('send-asset');
   select.textContent = ''; // безопасная очистка
+  const nativeSymbol = getNativeAssetSymbol();
 
   // ETH — статичная опция
   const ethOpt = document.createElement('option');
   ethOpt.value = 'ETH';
-  ethOpt.textContent = 'ETH (Ether)';
+  ethOpt.textContent = `${nativeSymbol} (Native)`;
   select.appendChild(ethOpt);
 
   // ERC-20 токены — value и textContent отдельно, не через шаблон
@@ -1151,6 +1444,9 @@ async function showSendScreen() {
 }
 
 function resetSendFlowUI({ clearInputs = false } = {}) {
+  if (typeof PopupSendFlow.resetSendFlowUI === 'function') {
+    return PopupSendFlow.resetSendFlowUI({ clearInputs });
+  }
   _pendingTx = null;
   clearMessages('send');
   clearMessages('confirm');
@@ -1174,6 +1470,9 @@ function resetSendFlowUI({ clearInputs = false } = {}) {
 // Подпись и отправка транзакции — приватный ключ остаётся в SW, сюда не приходит
 // Шаг 1: валидация, оценка газа, показ экрана подтверждения
 async function sendTransaction() {
+  if (typeof PopupSendFlow.sendTransaction === 'function') {
+    return PopupSendFlow.sendTransaction();
+  }
   const { accounts = [] } = await getLocal(['accounts']);
   const activeAddress = accounts[activeAccountIndex]?.address;
   if (!activeAddress || !(await ensureActiveAccountInSW(activeAddress, activeAccountIndex))) {
@@ -1195,10 +1494,11 @@ async function sendTransaction() {
   setStatus('send', 'Оценка газа…');
 
   try {
+    const nativeSymbol = getNativeAssetSymbol();
     let gasEstimateWei, assetLabel, token;
 
     if (asset === 'ETH') {
-      assetLabel = 'ETH';
+      assetLabel = nativeSymbol;
       const txRequest = {
         to,
         value: ethers.parseEther(amount),
@@ -1226,15 +1526,15 @@ async function sendTransaction() {
 
     // Для ETH: итого = сумма + газ; для ERC-20: итого газ отдельно
     const totalText = asset === 'ETH'
-      ? `${formatAmount(parseFloat(amount) + gasCostEth)} ETH`
-      : `${amount} ${assetLabel} + ${formatAmount(gasCostEth)} ETH (газ)`;
+      ? `${formatAmount(parseFloat(amount) + gasCostEth)} ${nativeSymbol}`
+      : `${amount} ${assetLabel} + ${formatAmount(gasCostEth)} ${nativeSymbol} (газ)`;
 
     _pendingTx = { to, amount, asset, token: token || null };
 
     document.getElementById('confirm-to').textContent = to;
     document.getElementById('confirm-amount').textContent = `${amount}`;
     document.getElementById('confirm-asset').textContent = assetLabel;
-    document.getElementById('confirm-gas-estimate').textContent = `~${formatAmount(gasCostEth)} ETH`;
+    document.getElementById('confirm-gas-estimate').textContent = `~${formatAmount(gasCostEth)} ${nativeSymbol}`;
     document.getElementById('confirm-total').textContent = totalText;
 
     clearMessages('send');
@@ -1254,6 +1554,9 @@ async function sendTransaction() {
 
 // Шаг 2: пользователь подтвердил — отправляем в SW
 async function confirmSend() {
+  if (typeof PopupSendFlow.confirmSend === 'function') {
+    return PopupSendFlow.confirmSend();
+  }
   if (!_pendingTx) { showScreen('screen-send'); return; }
   sendToSW({ type: 'reset-lock-timer' });
   clearMessages('confirm');
@@ -1302,6 +1605,9 @@ async function confirmSend() {
 
 // Отмена — возврат к экрану отправки
 function cancelSend() {
+  if (typeof PopupSendFlow.cancelSend === 'function') {
+    return PopupSendFlow.cancelSend();
+  }
   _pendingTx = null;
   showScreen('screen-send');
 }
@@ -1312,17 +1618,7 @@ async function copyAddress() {
   const address = accounts[activeAccountIndex]?.address;
   if (!address) return;
 
-  try {
-    await navigator.clipboard.writeText(address);
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = address;
-    Object.assign(ta.style, { position: 'fixed', opacity: '0' });
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-  }
+  await copyText(address);
 
   // Сохраняем дочерние узлы (SVG) без использования innerHTML
   const btn = document.querySelector('.copy-btn');
@@ -1340,7 +1636,7 @@ async function copyAddress() {
 
 // ── Мнемоника ─────────────────────────────────────────────────────────────────
 function copyMnemonic() {
-  navigator.clipboard.writeText(document.getElementById('mnemonic-display').textContent).catch(() => {});
+  copyText(document.getElementById('mnemonic-display').textContent).catch(() => {});
 }
 
 // Пользователь нажал "Я сохранил" → показываем квиз
@@ -1466,170 +1762,6 @@ async function resetWallet() {
   showScreen('screen-setup');
 }
 
-// ── Аватарка ──────────────────────────────────────────────────────────────────
-function hashAvatarSeed(value) {
-  let h1 = 0xdeadbeef ^ value.length;
-  let h2 = 0x41c6ce57 ^ value.length;
-
-  for (let i = 0; i < value.length; i++) {
-    const ch = value.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
-  }
-
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return [h1 >>> 0, h2 >>> 0];
-}
-
-function createSvgNode(tag, attrs = {}) {
-  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
-  Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
-  return node;
-}
-
-function buildAvatarSvg(address) {
-  const normalized = String(address).trim().toLowerCase();
-  const [seedA, seedB] = hashAvatarSeed(normalized);
-
-  const hueBase = seedA % 360;
-  const hueAccent = (hueBase + 35 + (seedB % 110)) % 360;
-  const huePattern = (hueBase + 150 + (seedB % 90)) % 360;
-
-  const bgStart = `hsl(${hueBase}, 72%, 56%)`;
-  const bgEnd = `hsl(${hueAccent}, 68%, 30%)`;
-  const tileColor = `hsla(${huePattern}, 90%, 92%, 0.7)`;
-  const emblemColor = `hsl(${(huePattern + 18) % 360}, 100%, 97%)`;
-
-  const svg = createSvgNode('svg', {
-    viewBox: '0 0 100 100',
-    'aria-hidden': 'true',
-    focusable: 'false',
-  });
-
-  const defs = createSvgNode('defs');
-  const gradientId = `avatar-grad-${seedA.toString(16)}-${seedB.toString(16)}`;
-  const gradient = createSvgNode('linearGradient', {
-    id: gradientId,
-    x1: '0%',
-    y1: '0%',
-    x2: '100%',
-    y2: '100%',
-  });
-  gradient.appendChild(createSvgNode('stop', { offset: '0%', 'stop-color': bgStart }));
-  gradient.appendChild(createSvgNode('stop', { offset: '100%', 'stop-color': bgEnd }));
-  defs.appendChild(gradient);
-  svg.appendChild(defs);
-
-  svg.appendChild(createSvgNode('rect', {
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
-    rx: 24,
-    fill: `url(#${gradientId})`,
-  }));
-
-  const grid = createSvgNode('g', { opacity: 0.95 });
-  const cellSize = 12;
-  const gap = 3;
-  const origin = 18;
-
-  for (let row = 0; row < 5; row++) {
-    for (let col = 0; col < 3; col++) {
-      const bit = row * 3 + col;
-      const isOn = ((seedA >>> bit) ^ (seedB >>> ((bit + 7) % 24))) & 1;
-      if (!isOn) continue;
-
-      const x = origin + col * (cellSize + gap);
-      const y = origin + row * (cellSize + gap);
-      const mirrorX = origin + (4 - col) * (cellSize + gap);
-      const round = 3 + ((seedB >>> ((bit + 11) % 24)) & 0x03);
-
-      grid.appendChild(createSvgNode('rect', {
-        x,
-        y,
-        width: cellSize,
-        height: cellSize,
-        rx: round,
-        fill: tileColor,
-      }));
-
-      if (mirrorX !== x) {
-        grid.appendChild(createSvgNode('rect', {
-          x: mirrorX,
-          y,
-          width: cellSize,
-          height: cellSize,
-          rx: round,
-          fill: tileColor,
-        }));
-      }
-    }
-  }
-
-  svg.appendChild(grid);
-
-  const emblem = createSvgNode('g', {
-    transform: 'translate(50 50)',
-    fill: emblemColor,
-    opacity: 0.94,
-  });
-  const emblemVariant = seedB % 4;
-
-  if (emblemVariant === 0) {
-    emblem.appendChild(createSvgNode('circle', { cx: 0, cy: 0, r: 10 }));
-    emblem.appendChild(createSvgNode('circle', { cx: 0, cy: 0, r: 4, fill: bgEnd }));
-  } else if (emblemVariant === 1) {
-    emblem.appendChild(createSvgNode('rect', {
-      x: -10,
-      y: -10,
-      width: 20,
-      height: 20,
-      rx: 5,
-      transform: 'rotate(45)',
-    }));
-    emblem.appendChild(createSvgNode('rect', {
-      x: -4,
-      y: -4,
-      width: 8,
-      height: 8,
-      rx: 2,
-      fill: bgEnd,
-      transform: 'rotate(45)',
-    }));
-  } else if (emblemVariant === 2) {
-    emblem.appendChild(createSvgNode('path', {
-      d: 'M0 -13 L11 -4 L7 12 L-7 12 L-11 -4 Z',
-    }));
-    emblem.appendChild(createSvgNode('circle', { cx: 0, cy: 0, r: 3.5, fill: bgEnd }));
-  } else {
-    emblem.appendChild(createSvgNode('path', {
-      d: 'M0 -14 L12 8 L-12 8 Z',
-    }));
-    emblem.appendChild(createSvgNode('rect', {
-      x: -2.5,
-      y: -2,
-      width: 5,
-      height: 12,
-      rx: 2,
-      fill: bgEnd,
-    }));
-  }
-
-  svg.appendChild(emblem);
-  return svg;
-}
-
-function setAvatar(elementId, address) {
-  const el = document.getElementById(elementId);
-  if (!el || !address) return;
-  if (el.dataset.avatarAddress === address) return;
-
-  el.dataset.avatarAddress = address;
-  el.style.background = 'none';
-  el.replaceChildren(buildAvatarSvg(address));
-}
 // ── Форматирование чисел ────────────────────────────────────────────────────
 // Показывает ровно столько знаков, сколько нужно, без хвостовых нулей:
 //   200        → "200"
@@ -1658,12 +1790,6 @@ function shortAddr(addr) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 }
 
-function getLocal(keys)    { return new Promise(r => chrome.storage.local.get(keys, r)); }
-function setLocal(data)    { return new Promise(r => chrome.storage.local.set(data, r)); }
-function removeLocal(keys) { return new Promise(r => chrome.storage.local.remove(keys, r)); }
-function getSession(keys)  { return new Promise(r => chrome.storage.session.get(keys, r)); }
-function setSession(data)  { return new Promise(r => chrome.storage.session.set(data, r)); }
-
 // ── Выбор API ключа ───────────────────────────────────────────────────────────
 // Провайдеры, разрешённые CSP в manifest.json (connect-src).
 // При добавлении нового провайдера — обновить оба места одновременно.
@@ -1679,6 +1805,9 @@ const ALLOWED_RPC_HOSTS = [
 // Читает состояние чекбокса и поля ввода на экране setup.
 // Возвращает { ok, url, useDefault } или { ok: false, error }
 function _readRpcChoice() {
+  if (typeof PopupNetworkState._readRpcChoice === 'function') {
+    return PopupNetworkState._readRpcChoice();
+  }
   const useDefault = document.getElementById('use-default-key')?.checked !== false;
   const customUrl  = document.getElementById('custom-rpc-url')?.value.trim() || '';
 
@@ -1703,6 +1832,9 @@ function _readRpcChoice() {
 
 // Сохраняет выбор в хранилище и обновляет провайдер
 async function _saveRpcChoice(choice) {
+  if (typeof PopupNetworkState._saveRpcChoice === 'function') {
+    return PopupNetworkState._saveRpcChoice(choice);
+  }
   const prevAddress = _autoRefreshAddress;
   stopAutoRefresh();
 
@@ -1714,7 +1846,7 @@ async function _saveRpcChoice(choice) {
   await setLocal({ rpcByNetwork });
 
   // Обновляем провайдер сразу по активной сети
-  provider = new ethers.JsonRpcProvider(getRpcUrlForNetwork(selectedNetwork));
+  provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
   syncNetworkControls();
 
   // Переподписываем автообновление на новый провайдер.
@@ -1725,40 +1857,67 @@ async function _saveRpcChoice(choice) {
 
 // Показывает/скрывает поле кастомного URL при переключении чекбокса
 function toggleCustomKey() {
+  if (typeof PopupNetworkState.toggleCustomKey === 'function') {
+    return PopupNetworkState.toggleCustomKey();
+  }
   const useDefault  = document.getElementById('use-default-key').checked;
   const customField = document.getElementById('custom-key-field');
   if (customField) customField.style.display = useDefault ? 'none' : 'block';
 }
 
 function updateNetworkBadge() {
+  if (typeof PopupNetworkState.updateNetworkBadge === 'function') {
+    return PopupNetworkState.updateNetworkBadge();
+  }
   const badge = document.getElementById('network-badge');
   if (!badge) return;
 
-  const isMainnet = selectedNetwork === 'eth-mainnet';
+  const networkMeta = getCurrentNetworkMeta();
+  const isMainnet = !networkMeta.isTestnet;
   badge.classList.toggle('mainnet', isMainnet);
   badge.classList.toggle('testnet', !isMainnet);
-  badge.textContent = isMainnet
-    ? 'MAINNET • Ethereum Mainnet'
-    : 'TESTNET • Ethereum Sepolia';
+  if (selectedNetwork === 'eth-mainnet') {
+    badge.textContent = 'MAINNET • Ethereum Mainnet';
+    return;
+  }
+  if (selectedNetwork === 'bsc') {
+    badge.textContent = 'MAINNET • BNB Chain';
+    return;
+  }
+  badge.textContent = 'TESTNET • Ethereum Sepolia';
 }
 
 async function ensureMainnetSendGuard() {
-  if (selectedNetwork !== 'eth-mainnet') return true;
+  if (typeof PopupNetworkState.ensureMainnetSendGuard === 'function') {
+    return PopupNetworkState.ensureMainnetSendGuard();
+  }
+  const networkMeta = getCurrentNetworkMeta();
+  if (networkMeta.isTestnet) return true;
+  const networkGuardKey = getMainnetSendGuardKey();
 
-  const { [MAINNET_SEND_GUARD_KEY]: accepted } = await getLocal([MAINNET_SEND_GUARD_KEY]);
-  if (accepted) return true;
+  const { [networkGuardKey]: acceptedByNetwork, [LEGACY_MAINNET_SEND_GUARD_KEY]: acceptedLegacy } =
+    await getLocal([networkGuardKey, LEGACY_MAINNET_SEND_GUARD_KEY]);
+  if (acceptedByNetwork) return true;
+
+  if (acceptedLegacy) {
+    await setLocal({ [networkGuardKey]: true });
+    return true;
+  }
 
   const ok = confirm(
-    'Вы отправляете транзакцию в Ethereum Mainnet.\n\n' +
-    'Это реальная сеть и комиссия оплачивается реальным ETH.\n\n' +
+    `Вы отправляете транзакцию в ${networkMeta.label}.\n\n` +
+    'Это реальная сеть и комиссия оплачивается реальными средствами.\n\n' +
     'Продолжить?'
   );
 
-  if (ok) await setLocal({ [MAINNET_SEND_GUARD_KEY]: true });
+  if (ok) await setLocal({ [networkGuardKey]: true });
   return ok;
 }
 
 function syncNetworkControls() {
+  if (typeof PopupNetworkState.syncNetworkControls === 'function') {
+    return PopupNetworkState.syncNetworkControls();
+  }
   applyNetworkPickerState('setup', selectedNetwork);
   applyNetworkPickerState('wallet', selectedNetwork);
 
@@ -1775,14 +1934,25 @@ function syncNetworkControls() {
     customRpcInput.placeholder = getCurrentNetworkMeta().defaultRpcUrl;
   }
 
+  const balanceUnit = document.getElementById('wallet-balance-unit');
+  if (balanceUnit) {
+    balanceUnit.textContent = getNativeAssetSymbol();
+  }
+
   updateNetworkBadge();
 }
 
 function getNetworkPickerOption(networkKey) {
+  if (typeof PopupNetworkState.getNetworkPickerOption === 'function') {
+    return PopupNetworkState.getNetworkPickerOption(networkKey);
+  }
   return NETWORK_PICKER_OPTIONS[networkKey] || NETWORK_PICKER_OPTIONS[DEFAULT_NETWORK_KEY];
 }
 
 function applyNetworkPickerState(context, activeNetworkKey) {
+  if (typeof PopupNetworkState.applyNetworkPickerState === 'function') {
+    return PopupNetworkState.applyNetworkPickerState(context, activeNetworkKey);
+  }
   const picker = document.getElementById(`network-picker-${context}`);
   if (!picker) return;
 
@@ -1798,6 +1968,9 @@ function applyNetworkPickerState(context, activeNetworkKey) {
 }
 
 function pulseNetworkPickers() {
+  if (typeof PopupNetworkState.pulseNetworkPickers === 'function') {
+    return PopupNetworkState.pulseNetworkPickers();
+  }
   ['setup', 'wallet'].forEach((context) => {
     const trigger = document.querySelector(`#network-picker-${context} .network-picker-trigger`);
     if (!trigger) return;
@@ -1809,16 +1982,17 @@ function pulseNetworkPickers() {
 }
 
 function handleNetworkSelection(value) {
-  if (!value) return;
-  if (value === 'bsc') {
-    alert('BNB Chain будет добавлена в следующем обновлении.');
-    syncNetworkControls();
-    return;
+  if (typeof PopupNetworkState.handleNetworkSelection === 'function') {
+    return PopupNetworkState.handleNetworkSelection(value);
   }
+  if (!value) return;
   setNetwork(value);
 }
 
 function toggleNetworkPicker(context, event) {
+  if (typeof PopupNetworkState.toggleNetworkPicker === 'function') {
+    return PopupNetworkState.toggleNetworkPicker(context, event);
+  }
   event?.stopPropagation();
   const picker = document.getElementById(`network-picker-${context}`);
   if (!picker) return;
@@ -1829,18 +2003,27 @@ function toggleNetworkPicker(context, event) {
 }
 
 function closeNetworkPickers() {
+  if (typeof PopupNetworkState.closeNetworkPickers === 'function') {
+    return PopupNetworkState.closeNetworkPickers();
+  }
   document.querySelectorAll('.network-picker.open').forEach((picker) => {
     picker.classList.remove('open');
   });
 }
 
 function selectNetworkOption(_context, value, event) {
+  if (typeof PopupNetworkState.selectNetworkOption === 'function') {
+    return PopupNetworkState.selectNetworkOption(_context, value, event);
+  }
   event?.stopPropagation();
   closeNetworkPickers();
   handleNetworkSelection(value);
 }
 
 function initNetworkPickerInteractions() {
+  if (typeof PopupNetworkState.initNetworkPickerInteractions === 'function') {
+    return PopupNetworkState.initNetworkPickerInteractions();
+  }
   document.addEventListener('click', (event) => {
     if (event.target.closest('.network-picker')) return;
     closeNetworkPickers();
@@ -1852,6 +2035,9 @@ function initNetworkPickerInteractions() {
 }
 
 async function setNetwork(networkKey) {
+  if (typeof PopupNetworkState.setNetwork === 'function') {
+    return PopupNetworkState.setNetwork(networkKey);
+  }
   if (!NETWORKS[networkKey] || networkKey === selectedNetwork) return;
 
   const prevAddress = _autoRefreshAddress;
@@ -1861,7 +2047,7 @@ async function setNetwork(networkKey) {
   selectedChain = NETWORKS[networkKey].chain || DEFAULT_CHAIN_KEY;
   await setLocal({ selectedNetwork });
   await setLocal({ selectedChain });
-  provider = new ethers.JsonRpcProvider(getRpcUrlForNetwork(selectedNetwork));
+  provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
   syncNetworkControls();
   pulseNetworkPickers();
 
@@ -1903,27 +2089,4 @@ async function handleSWLocked() {
   setAvatar('unlock-avatar', address);
   document.getElementById('unlock-address').textContent = shortAddr(address);
   showScreen('screen-unlock');
-}
-
-function showError(prefix, msg) {
-  const el = document.getElementById(`${prefix}-error`);
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-}
-function setStatus(prefix, msg) {
-  const el = document.getElementById(`${prefix}-status`);
-  if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
-}
-function showSuccess(prefix, msg) {
-  const el = document.getElementById(`${prefix}-success`);
-  if (el) { el.textContent = '✓ ' + msg; el.style.display = 'block'; }
-}
-function clearMessages(prefix) {
-  ['error', 'status', 'success'].forEach(type => {
-    const el = document.getElementById(`${prefix}-${type}`);
-    if (el) el.style.display = 'none';
-  });
-}
-function setLoading(btnId, loading) {
-  const btn = document.getElementById(btnId);
-  if (btn) btn.disabled = loading;
 }
