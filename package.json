@@ -1,0 +1,19 @@
+{
+  "name": "wolf-wallet-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test tooling for Wolf Wallet browser extension",
+  "scripts": {
+    "test": "npm run test:unit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4"
+  }
+}
