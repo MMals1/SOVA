@@ -30,3 +30,8 @@ coverage/
 *.crx
 *.zip
 *.pem
+
+# Generated bundles (rebuilt via `npm run build`)
+extension/popup/popup.bundle.js
+extension/popup/popup.bundle.js.map
+extension/popup/popup-entry.js

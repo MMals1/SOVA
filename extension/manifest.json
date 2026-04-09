@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SOVA Wallet",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "Некастодиальный Ethereum кошелёк с dApp-коннектом · Sepolia testnet + Mainnet + BNB",
 
   "permissions": [

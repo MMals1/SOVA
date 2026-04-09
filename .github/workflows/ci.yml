@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build extension bundle
+        run: npm run build
+
+      - name: Verify bundle size
+        run: |
+          SIZE=$(stat --printf='%s' extension/popup/popup.bundle.js)
+          KB=$((SIZE / 1024))
+          echo "popup.bundle.js: ${KB} KB"
+          if [ "$KB" -gt 200 ]; then
+            echo "ERROR: Bundle too large (${KB} KB > 200 KB). Check for accidental ethers inclusion."
+            exit 1
+          fi
+
+      - name: Verify popup.js is decomposed
+        run: |
+          LINES=$(wc -l < extension/popup/popup.js)
+          echo "popup.js: ${LINES} lines"
+          if [ "$LINES" -gt 400 ]; then
+            echo "ERROR: popup.js grew beyond 400 lines (${LINES}). Refactor needed."
+            exit 1
+          fi
+
+      - name: Unit & integration tests
+        run: npm test
