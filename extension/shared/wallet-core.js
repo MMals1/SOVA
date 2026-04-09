@@ -27,7 +27,39 @@
   function getTxExplorerBaseUrl(networkKey = 'eth-sepolia') {
     if (networkKey === 'eth-mainnet') return 'https://etherscan.io/tx/';
     if (networkKey === 'eth-sepolia') return 'https://sepolia.etherscan.io/tx/';
+    if (networkKey === 'bsc') return 'https://bscscan.com/tx/';
     return 'https://etherscan.io/tx/';
+  }
+
+  function getTokensForNetwork(tokensByNetwork, networkKey) {
+    if (!tokensByNetwork || typeof tokensByNetwork !== 'object') return [];
+    const scoped = tokensByNetwork[networkKey];
+    return Array.isArray(scoped) ? scoped : [];
+  }
+
+  function setTokensForNetwork(tokensByNetwork, networkKey, tokens) {
+    const nextMap = (tokensByNetwork && typeof tokensByNetwork === 'object')
+      ? { ...tokensByNetwork }
+      : {};
+    nextMap[networkKey] = Array.isArray(tokens) ? tokens : [];
+    return nextMap;
+  }
+
+  function getTokenLogoUrls(tokenAddress, networkKey = 'eth-sepolia') {
+    if (!tokenAddress) return [];
+    if (!String(networkKey).startsWith('eth-') && networkKey !== 'bsc') return [];
+    const normalized = String(tokenAddress);
+    const lower = normalized.toLowerCase();
+    if (networkKey === 'bsc') {
+      return [
+        `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${normalized}/logo.png`,
+        `https://tokens.1inch.io/${lower}.png`,
+      ];
+    }
+    return [
+      `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${normalized}/logo.png`,
+      `https://tokens.1inch.io/${lower}.png`,
+    ];
   }
 
   function getTotalPages(totalItems, pageSize = 10) {
@@ -58,11 +90,14 @@
   return {
     clampPage,
     formatAmount,
+    getTokenLogoUrls,
+    getTokensForNetwork,
     getTotalPages,
     getTxExplorerBaseUrl,
     getTxScopeKey,
     isSameAddress,
     paginateItems,
+    setTokensForNetwork,
     shortAddr,
   };
 });

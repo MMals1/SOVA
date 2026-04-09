@@ -200,33 +200,51 @@
     });
   }
 
+  // Legacy URL check — оставлен для backward compat в экспортах модуля.
+  // Внутри loadTransactions используется resolveProvider() из tx-history-providers.js.
+  function _isAlchemyUrl(url) {
+    const P = globalThis.WolfPopupTxHistoryProviders;
+    if (P && typeof P.isAlchemyUrl === 'function') return P.isAlchemyUrl(url);
+    try { return new URL(url).hostname.endsWith('.alchemy.com'); }
+    catch { return false; }
+  }
+
+  // Thin wrapper для обратной совместимости (тесты, внешний код).
+  // Делегирует в tx-history-providers.js.
   async function fetchAlchemyTransfers(address, direction, opts = {}) {
+    const P = globalThis.WolfPopupTxHistoryProviders;
+    if (!P || typeof P.fetchAlchemyTransfers !== 'function') {
+      return { result: { transfers: [] } };
+    }
     const NETWORKS = _getNetworks();
     const networkKey = NETWORKS[PopupState.selectedNetwork]
       ? PopupState.selectedNetwork
       : Object.keys(NETWORKS)[0];
     const activeUrl = _getRpcUrlForNetwork(networkKey, PopupState.rpcByNetwork || {});
+    return P.fetchAlchemyTransfers(activeUrl, address, direction, opts);
+  }
 
-    const body = {
-      id: 1, jsonrpc: '2.0',
-      method: 'alchemy_getAssetTransfers',
-      params: [{
-        fromBlock: opts.fromBlock || '0x0',
-        toBlock: opts.toBlock || 'latest',
-        category: ['external', 'erc20'],
-        withMetadata: false,
-        excludeZeroValue: true,
-        maxCount: opts.maxCount || '0x14',
-        [direction === 'from' ? 'fromAddress' : 'toAddress']: address,
-      }],
-    };
-    const res = await fetch(activeUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+  // ── UI helpers для empty-state сообщений ────────────────────────────────
+  function _renderInlineMessage(el, msg) {
+    const existing = el.querySelector('.empty');
+    if (existing) {
+      existing.textContent = msg;
+      existing.style.whiteSpace = 'pre-line';
+    } else {
+      el.textContent = '';
+      const p = document.createElement('p');
+      p.className = 'empty';
+      p.style.whiteSpace = 'pre-line';
+      p.textContent = msg;
+      el.appendChild(p);
+    }
+  }
+
+  async function _getEtherscanKey() {
+    try {
+      const { etherscanApiKey } = await getLocal(['etherscanApiKey']);
+      return typeof etherscanApiKey === 'string' ? etherscanApiKey.trim() : '';
+    } catch { return ''; }
   }
 
   async function loadTransactions(address) {
@@ -239,6 +257,34 @@
       const el = document.getElementById('tx-list');
       setTxRefreshIndicator(true);
 
+      // Резолвим источник истории в порядке:
+      //   Alchemy (fast) → Etherscan V2 (user key) → Blockscout (public) → null
+      const NETWORKS = _getNetworks();
+      const nk = NETWORKS[PopupState.selectedNetwork]
+        ? PopupState.selectedNetwork
+        : Object.keys(NETWORKS)[0];
+      const rpcUrl = _getRpcUrlForNetwork(nk, PopupState.rpcByNetwork || {});
+      const etherscanKey = await _getEtherscanKey();
+
+      const Providers = globalThis.WolfPopupTxHistoryProviders;
+      if (!Providers || typeof Providers.resolveProvider !== 'function') {
+        setTxRefreshIndicator(false);
+        _renderInlineMessage(el, 'Модуль истории не загружен');
+        return;
+      }
+
+      const provider = Providers.resolveProvider({
+        networkKey: nk,
+        rpcUrl,
+        etherscanKey,
+      });
+
+      if (!provider) {
+        setTxRefreshIndicator(false);
+        _renderInlineMessage(el, Providers.getNoProviderReason(nk));
+        return;
+      }
+
       try {
         const { [TX_SYNC_STATE_KEY]: syncState = {}, [TX_HISTORY_CACHE_KEY]: txCache = {} } =
           await getLocal([TX_SYNC_STATE_KEY, TX_HISTORY_CACHE_KEY]);
@@ -246,6 +292,9 @@
         const accountSync = syncState?.[scopeKey] || {};
         const cachedTxs = Array.isArray(txCache?.[scopeKey]) ? txCache[scopeKey] : [];
 
+        // Checkpoint применим только для Alchemy (там есть fromBlock параметр).
+        // Blockscout/Etherscan V2 всегда отдают последние N, поэтому checkpoint
+        // только для кэша (избежать лишних re-render'ов).
         const hasCheckpoint = Number.isInteger(accountSync.lastProcessedBlock)
           && accountSync.lastProcessedBlock >= 0;
         const fromBlockHex = hasCheckpoint
@@ -254,49 +303,44 @@
 
         if (cachedTxs.length) {
           renderTransactions(el, address, cachedTxs, PopupState.selectedNetwork);
-        } else if (!el.children.length) {
-          const loadingEl = document.createElement('p');
-          loadingEl.className = 'empty';
-          loadingEl.textContent = 'Загрузка…';
-          el.textContent = '';
-          el.appendChild(loadingEl);
+        } else {
+          // popup.html содержит initial <p class="empty">Загрузка…</p>.
+          // Мы всегда обновляем текст в existing .empty либо создаём новый.
+          _renderInlineMessage(el, 'Загрузка…');
+          const p = el.querySelector('.empty');
+          if (p) p.style.whiteSpace = '';
         }
 
-        const maxCount = hasCheckpoint ? TX_INCREMENTAL_MAX_COUNT : TX_INITIAL_MAX_COUNT;
+        // Fetch свежие transfers через выбранный провайдер
+        const fetchOpts = provider.type === 'alchemy'
+          ? {
+            fromBlock: fromBlockHex,
+            maxCount: hasCheckpoint ? TX_INCREMENTAL_MAX_COUNT : TX_INITIAL_MAX_COUNT,
+          }
+          : { offset: 200 }; // Blockscout/Etherscan всегда последние 200
 
-        let [sentRes, recvRes] = await Promise.all([
-          fetchAlchemyTransfers(address, 'from', { fromBlock: fromBlockHex, maxCount }),
-          fetchAlchemyTransfers(address, 'to', { fromBlock: fromBlockHex, maxCount }),
-        ]);
+        let fresh = await provider.fetchAll(address, fetchOpts);
 
-        if (sentRes.error) throw new Error(sentRes.error.message || 'Alchemy error (from)');
-        if (recvRes.error) throw new Error(recvRes.error.message || 'Alchemy error (to)');
-
-        let sent = sentRes.result?.transfers || [];
-        let recv = recvRes.result?.transfers || [];
-
-        if (hasCheckpoint && !cachedTxs.length && (sent.length + recv.length === 0)) {
-          [sentRes, recvRes] = await Promise.all([
-            fetchAlchemyTransfers(address, 'from', { fromBlock: '0x0', maxCount: TX_INITIAL_MAX_COUNT }),
-            fetchAlchemyTransfers(address, 'to', { fromBlock: '0x0', maxCount: TX_INITIAL_MAX_COUNT }),
-          ]);
-          if (sentRes.error) throw new Error(sentRes.error.message || 'Alchemy error (from)');
-          if (recvRes.error) throw new Error(recvRes.error.message || 'Alchemy error (to)');
-          sent = sentRes.result?.transfers || [];
-          recv = recvRes.result?.transfers || [];
+        // Для Alchemy: если checkpoint вернул 0 результатов — retry с fromBlock=0x0
+        // (на случай если SW убил стейт и мы потеряли cache но checkpoint сохранился).
+        if (provider.type === 'alchemy' && hasCheckpoint && !cachedTxs.length && fresh.length === 0) {
+          fresh = await provider.fetchAll(address, { fromBlock: '0x0', maxCount: TX_INITIAL_MAX_COUNT });
         }
 
+        // Dedupe fresh (Alchemy делает 2 запроса, может быть дубль)
         const freshSeen = new Set();
-        const fresh = [...sent, ...recv]
+        fresh = fresh
           .filter(tx => {
+            if (!tx || !tx.hash) return false;
             if (freshSeen.has(tx.hash)) return false;
             freshSeen.add(tx.hash);
             return true;
           })
           .sort((a, b) => (parseInt(b.blockNum, 16) || 0) - (parseInt(a.blockNum, 16) || 0));
 
+        // Merge с кэшем
         const mergedSeen = new Set();
-        const baseForMerge = (hasCheckpoint && fresh.length === 0 && cachedTxs.length > 0)
+        const baseForMerge = (provider.type === 'alchemy' && hasCheckpoint && fresh.length === 0 && cachedTxs.length > 0)
           ? cachedTxs
           : [...fresh, ...cachedTxs];
         const merged = baseForMerge
@@ -323,6 +367,7 @@
         nextSyncState[scopeKey] = {
           lastProcessedBlock: nextCheckpoint,
           updatedAt: new Date().toISOString(),
+          provider: provider.type,
         };
 
         const nextCache = { ...txCache };
@@ -337,11 +382,7 @@
         console.error('[loadTransactions]', e);
         const hasRenderedTx = el.querySelector('.tx');
         if (!hasRenderedTx) {
-          el.textContent = '';
-          const p = document.createElement('p');
-          p.className = 'empty';
-          p.textContent = 'Не удалось загрузить транзакции';
-          el.appendChild(p);
+          _renderInlineMessage(el, `Не удалось загрузить транзакции (${provider.label})`);
         }
       } finally {
         setTxRefreshIndicator(false);

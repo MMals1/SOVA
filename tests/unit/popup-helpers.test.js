@@ -16,6 +16,7 @@ describe('popup helpers', () => {
   it('builds explorer links for supported networks', () => {
     expect(getTxExplorerBaseUrl('eth-mainnet')).toBe('https://etherscan.io/tx/');
     expect(getTxExplorerBaseUrl('eth-sepolia')).toBe('https://sepolia.etherscan.io/tx/');
+    expect(getTxExplorerBaseUrl('bsc')).toBe('https://bscscan.com/tx/');
     expect(getTxExplorerBaseUrl('unknown')).toBe('https://etherscan.io/tx/');
   });
 

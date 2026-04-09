@@ -1,6 +1,6 @@
 {
-  "name": "wolf-wallet-extension",
-  "version": "1.0.0",
+  "name": "sova-wallet-extension",
+  "version": "1.5.0",
   "private": true,
   "description": "Test tooling for Wolf Wallet browser extension",
   "scripts": {
@@ -9,7 +9,10 @@
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:install-browsers": "playwright install chromium"
+    "test:install-browsers": "playwright install chromium",
+    "site:dev": "node site/server.mjs",
+    "site:open": "open http://127.0.0.1:5173",
+    "build:extension": "cd extension && zip -r ../wolf-wallet-extension.zip . && cp ../wolf-wallet-extension.zip ../site/assets/"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",

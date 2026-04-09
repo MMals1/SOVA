@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOVA Wallet — Demo dApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --card: #12121a;
+      --card-elev: #161620;
+      --border: #22222e;
+      --text: #e0e0e0;
+      --muted: #888;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --warn: #f5a623;
+      --danger: #ef4444;
+    }
+    body {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 64px;
+      line-height: 1.5;
+    }
+    .container { max-width: 920px; margin: 0 auto; }
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 20px 0 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .logo {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid #ffffff15;
+    }
+    h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.5px; }
+    .tagline { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .lang-btn {
+      margin-left: auto;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 12px; border-radius: 8px;
+      cursor: pointer; font-family: inherit; font-size: 12px;
+    }
+    .lang-btn:hover { color: var(--text); border-color: #444; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .grid .full { grid-column: 1 / -1; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 22px 20px;
+    }
+    .card h2 {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .card p { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .status-cell {
+      background: var(--card-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .status-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .status-value { font-size: 12px; word-break: break-all; min-height: 18px; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 500;
+      background: #1f2937; color: #9ca3af;
+      border: 1px solid #374151;
+    }
+    .badge.testnet { background: #422006; color: #fbbf24; border-color: #92400e; }
+    .badge.mainnet { background: #064e3b; color: #6ee7b7; border-color: #047857; }
+    .badge.bsc { background: #422a06; color: #fbbf24; border-color: #92710e; }
+    .badge.connected { background: #064e3b; color: #6ee7b7; border-color: #047857; }
+    .badge.disconnected { background: #1f2937; color: #9ca3af; border-color: #374151; }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    button.ghost:hover:not(:disabled) { background: var(--card-elev); border-color: #3a3a4a; }
+    button.danger { background: var(--danger); }
+    button.danger:hover:not(:disabled) { background: #dc2626; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .row.tight { gap: 6px; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+
+    label.field {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 11px; color: var(--muted);
+    }
+    input, textarea {
+      background: var(--card-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      width: 100%;
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .result {
+      background: #0a0a14;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      word-break: break-all;
+      min-height: 36px;
+      color: #cbd5e1;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .result.success { border-color: #047857; }
+    .result.error { border-color: #991b1b; color: #fca5a5; }
+    .result a { color: var(--accent); text-decoration: none; }
+    .result a:hover { text-decoration: underline; }
+
+    .events-log {
+      background: #0a0a14;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .event-row {
+      padding: 6px 0;
+      border-bottom: 1px solid #1a1a24;
+      display: flex; gap: 8px;
+    }
+    .event-row:last-child { border-bottom: none; }
+    .event-time { color: #555; flex-shrink: 0; }
+    .event-name { color: var(--accent); flex-shrink: 0; }
+    .event-data { color: var(--muted); word-break: break-all; }
+
+    .install-warning {
+      background: #422006; border: 1px solid #92400e;
+      color: #fbbf24;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .install-warning.show { display: block; }
+    .install-warning a { color: #fde047; text-decoration: underline; }
+
+    /* ── Wallet picker (EIP-6963) ────────────────────────────── */
+    .wallet-picker {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 22px 20px;
+      margin-bottom: 20px;
+    }
+    .wallet-picker h2 {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .wallet-picker .picker-hint {
+      font-size: 12px; color: var(--muted); margin-bottom: 14px;
+    }
+    .wallet-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 560px) {
+      .wallet-list { grid-template-columns: 1fr 1fr; }
+    }
+    .wallet-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      text-align: left;
+      font-family: inherit;
+      color: var(--text);
+      width: 100%;
+    }
+    .wallet-item:hover { border-color: #3a3a4a; background: #1a1a26; }
+    .wallet-item.selected { border-color: var(--accent); background: #0e1a33; }
+    .wallet-item-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: #0a0a14;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .wallet-item-icon img { width: 100%; height: 100%; object-fit: contain; }
+    .wallet-item-icon .initial {
+      font-size: 14px; font-weight: 600; color: var(--muted);
+    }
+    .wallet-item-meta { flex: 1; min-width: 0; }
+    .wallet-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .wallet-item-rdns { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .wallet-item-status {
+      font-size: 10px;
+      color: var(--muted);
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      flex-shrink: 0;
+    }
+    .wallet-item.selected .wallet-item-status {
+      background: #064e3b; color: #6ee7b7; border-color: #047857;
+    }
+    .wallet-picker-empty {
+      font-size: 12px; color: var(--muted); padding: 8px 0;
+    }
+
+    pre { font-family: inherit; white-space: pre-wrap; }
+    .small { font-size: 10px; color: #555; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="assets/logo_new.png" alt="SOVA" class="logo" />
+      <div>
+        <h1>SOVA Wallet — Demo dApp</h1>
+        <div class="tagline" data-lang="tagline">Демонстрация EIP-1193 интеграции</div>
+      </div>
+      <button class="lang-btn" id="lang-toggle" type="button">RU / EN</button>
+    </header>
+
+    <div class="install-warning" id="install-warning">
+      <strong data-lang="warnTitle">SOVA Wallet не обнаружен.</strong>
+      <span data-lang="warnText">Установите расширение, чтобы попробовать демо.</span>
+      <a href="assets/wolf-wallet-extension.zip" download data-lang="warnDownload">Скачать SOVA Wallet</a>
+    </div>
+
+    <!-- Wallet picker (EIP-6963): все обнаруженные провайдеры с явным выбором -->
+    <section class="wallet-picker" id="wallet-picker">
+      <h2 data-lang="pickerTitle">Выберите кошелёк</h2>
+      <div class="picker-hint" data-lang="pickerHint">
+        Кликните на нужный кошелёк. Выбор сохранится для этой сессии.
+      </div>
+      <div class="wallet-list" id="wallet-list">
+        <div class="wallet-picker-empty" data-lang="pickerEmpty">— кошельки не обнаружены —</div>
+      </div>
+    </section>
+
+    <div class="grid">
+
+      <!-- Status -->
+      <section class="card full">
+        <h2 data-lang="statusTitle">Статус подключения</h2>
+        <div class="status-grid">
+          <div class="status-cell">
+            <div class="status-label" data-lang="statusConnection">Подключение</div>
+            <div class="status-value">
+              <span class="badge disconnected" id="conn-badge" data-lang="badgeDisconnected">Отключено</span>
+            </div>
+          </div>
+          <div class="status-cell">
+            <div class="status-label" data-lang="statusNetwork">Сеть</div>
+            <div class="status-value" id="network-cell">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-label" data-lang="statusAddress">Адрес</div>
+            <div class="status-value" id="address-cell">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-label" data-lang="statusBalance">Баланс</div>
+            <div class="status-value" id="balance-cell">—</div>
+          </div>
+        </div>
+        <div class="row">
+          <button id="btn-connect" type="button" data-lang="btnConnect">Подключить SOVA Wallet</button>
+          <button id="btn-disconnect" type="button" class="ghost" disabled data-lang="btnDisconnect">Отключить</button>
+        </div>
+      </section>
+
+      <!-- Read-only actions -->
+      <section class="card">
+        <h2 data-lang="readTitle">Read-only методы</h2>
+        <p data-lang="readDesc">Не требуют подтверждения в попапе кошелька.</p>
+        <div class="stack">
+          <div class="row tight">
+            <button id="btn-block" class="ghost" type="button">eth_blockNumber</button>
+            <button id="btn-chain" class="ghost" type="button">eth_chainId</button>
+            <button id="btn-balance" class="ghost" type="button">eth_getBalance</button>
+            <button id="btn-gas" class="ghost" type="button">eth_gasPrice</button>
+          </div>
+          <div class="result" id="read-result" data-lang="readEmpty">— нажмите кнопку выше —</div>
+        </div>
+      </section>
+
+      <!-- Send transaction -->
+      <section class="card">
+        <h2 data-lang="sendTitle">Отправить транзакцию</h2>
+        <p data-lang="sendDesc">Подпишет и отправит ETH через SOVA. Используйте Sepolia testnet!</p>
+        <div class="stack">
+          <label class="field">
+            <span data-lang="sendToLabel">Получатель</span>
+            <input id="send-to" type="text" placeholder="0x..." value="0x000000000000000000000000000000000000dEaD" />
+          </label>
+          <label class="field">
+            <span data-lang="sendAmountLabel">Сумма (ETH)</span>
+            <input id="send-amount" type="text" value="0.0001" />
+          </label>
+          <button id="btn-send" type="button" data-lang="btnSend">Отправить</button>
+          <div class="result" id="send-result" data-lang="sendEmpty">—</div>
+        </div>
+      </section>
+
+      <!-- personal_sign -->
+      <section class="card">
+        <h2>personal_sign</h2>
+        <p data-lang="psignDesc">Подпись произвольного сообщения.</p>
+        <div class="stack">
+          <label class="field">
+            <span data-lang="psignMessageLabel">Сообщение</span>
+            <textarea id="psign-message">Hello SOVA Wallet! Sign this message to verify EIP-1193 personal_sign.</textarea>
+          </label>
+          <button id="btn-psign" type="button" data-lang="btnPsign">Подписать</button>
+          <div class="result" id="psign-result" data-lang="psignEmpty">—</div>
+          <button id="btn-psign-verify" class="ghost" type="button" disabled data-lang="btnPsignVerify">Локальная верификация</button>
+          <div class="result" id="psign-verify-result"></div>
+        </div>
+      </section>
+
+      <!-- Sign typed data -->
+      <section class="card">
+        <h2>eth_signTypedData_v4</h2>
+        <p data-lang="tdDesc">EIP-712 типизированная подпись.</p>
+        <div class="stack">
+          <button id="btn-typed" type="button" data-lang="btnTyped">Подписать пример</button>
+          <div class="result" id="typed-result" data-lang="tdEmpty">—</div>
+        </div>
+      </section>
+
+      <!-- Events -->
+      <section class="card full">
+        <h2 data-lang="eventsTitle">События провайдера</h2>
+        <p data-lang="eventsDesc">accountsChanged, chainChanged, connect, disconnect.</p>
+        <div class="events-log" id="events-log">
+          <div class="event-row"><span class="event-data" data-lang="eventsEmpty">— нет событий —</span></div>
+        </div>
+      </section>
+
+      <!-- Raw playground -->
+      <section class="card full">
+        <h2 data-lang="rawTitle">Raw JSON-RPC playground</h2>
+        <p data-lang="rawDesc">Произвольный вызов window.ethereum.request — для продвинутого тестирования.</p>
+        <div class="stack">
+          <label class="field">
+            <span data-lang="rawLabel">Payload (JSON)</span>
+            <textarea id="raw-payload" rows="3">{"method":"eth_blockNumber","params":[]}</textarea>
+          </label>
+          <button id="btn-raw" type="button" data-lang="btnRaw">Send</button>
+          <div class="result" id="raw-result">—</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.min.js';
+
+    // ── i18n ──────────────────────────────────────────────────────────────
+    const translations = {
+      ru: {
+        tagline: 'Демонстрация EIP-1193 интеграции',
+        warnTitle: 'SOVA Wallet не обнаружен.',
+        warnText: 'Установите расширение, чтобы попробовать демо.',
+        warnDownload: 'Скачать SOVA Wallet',
+        pickerTitle: 'Выберите кошелёк',
+        pickerHint: 'Кликните на нужный кошелёк. Выбор сохранится для этой сессии.',
+        pickerEmpty: '— кошельки не обнаружены —',
+        pickerStatusSelected: 'Выбран',
+        pickerStatusAvailable: 'Выбрать',
+        statusTitle: 'Статус подключения',
+        statusConnection: 'Подключение',
+        statusNetwork: 'Сеть',
+        statusAddress: 'Адрес',
+        statusBalance: 'Баланс',
+        badgeDisconnected: 'Отключено',
+        badgeConnected: 'Подключено',
+        btnConnect: 'Подключить SOVA Wallet',
+        btnDisconnect: 'Отключить',
+        readTitle: 'Read-only методы',
+        readDesc: 'Не требуют подтверждения в попапе кошелька.',
+        readEmpty: '— нажмите кнопку выше —',
+        sendTitle: 'Отправить транзакцию',
+        sendDesc: 'Подпишет и отправит ETH через SOVA. Используйте Sepolia testnet!',
+        sendToLabel: 'Получатель',
+        sendAmountLabel: 'Сумма (ETH)',
+        btnSend: 'Отправить',
+        sendEmpty: '—',
+        psignDesc: 'Подпись произвольного сообщения.',
+        psignMessageLabel: 'Сообщение',
+        btnPsign: 'Подписать',
+        psignEmpty: '—',
+        btnPsignVerify: 'Локальная верификация',
+        tdDesc: 'EIP-712 типизированная подпись.',
+        btnTyped: 'Подписать пример',
+        tdEmpty: '—',
+        eventsTitle: 'События провайдера',
+        eventsDesc: 'accountsChanged, chainChanged, connect, disconnect.',
+        eventsEmpty: '— нет событий —',
+        rawTitle: 'Raw JSON-RPC playground',
+        rawDesc: 'Произвольный вызов window.ethereum.request — для продвинутого тестирования.',
+        rawLabel: 'Payload (JSON)',
+        btnRaw: 'Send',
+      },
+      en: {
+        tagline: 'EIP-1193 integration demo',
+        warnTitle: 'SOVA Wallet not detected.',
+        warnText: 'Install the extension to try the demo.',
+        warnDownload: 'Download SOVA Wallet',
+        pickerTitle: 'Select wallet',
+        pickerHint: 'Click the wallet you want to use. Selection is remembered for this session.',
+        pickerEmpty: '— no wallets detected —',
+        pickerStatusSelected: 'Selected',
+        pickerStatusAvailable: 'Select',
+        statusTitle: 'Connection status',
+        statusConnection: 'Connection',
+        statusNetwork: 'Network',
+        statusAddress: 'Address',
+        statusBalance: 'Balance',
+        badgeDisconnected: 'Disconnected',
+        badgeConnected: 'Connected',
+        btnConnect: 'Connect SOVA Wallet',
+        btnDisconnect: 'Disconnect',
+        readTitle: 'Read-only methods',
+        readDesc: 'No popup approval required.',
+        readEmpty: '— click a button above —',
+        sendTitle: 'Send transaction',
+        sendDesc: 'Sign and broadcast ETH via SOVA. Use Sepolia testnet!',
+        sendToLabel: 'Recipient',
+        sendAmountLabel: 'Amount (ETH)',
+        btnSend: 'Send',
+        sendEmpty: '—',
+        psignDesc: 'Sign an arbitrary message.',
+        psignMessageLabel: 'Message',
+        btnPsign: 'Sign',
+        psignEmpty: '—',
+        btnPsignVerify: 'Verify locally',
+        tdDesc: 'EIP-712 typed data signature.',
+        btnTyped: 'Sign example',
+        tdEmpty: '—',
+        eventsTitle: 'Provider events',
+        eventsDesc: 'accountsChanged, chainChanged, connect, disconnect.',
+        eventsEmpty: '— no events yet —',
+        rawTitle: 'Raw JSON-RPC playground',
+        rawDesc: 'Arbitrary window.ethereum.request — for advanced testing.',
+        rawLabel: 'Payload (JSON)',
+        btnRaw: 'Send',
+      },
+    };
+
+    let currentLang = localStorage.getItem('sova-demo-lang') || 'ru';
+
+    function applyLang() {
+      const t = translations[currentLang];
+      document.querySelectorAll('[data-lang]').forEach((el) => {
+        const k = el.getAttribute('data-lang');
+        if (t[k] == null) return;
+        // Safeguard: если в элементе есть дочерние элементы (не только текст),
+        // НЕ перезаписываем textContent (это убьёт input'ы/кнопки внутри).
+        // Таким элементам нужен data-lang на отдельном <span>.
+        const hasElementChildren = el.children && el.children.length > 0;
+        if (hasElementChildren) {
+          console.warn('[applyLang] skipping element with children, move data-lang to a child span:', el);
+          return;
+        }
+        el.textContent = t[k];
+      });
+    }
+    document.getElementById('lang-toggle').addEventListener('click', () => {
+      currentLang = currentLang === 'ru' ? 'en' : 'ru';
+      localStorage.setItem('sova-demo-lang', currentLang);
+      applyLang();
+      // picker использует translations напрямую (не data-lang) — перерендериваем
+      if (typeof renderWalletPicker === 'function') renderWalletPicker();
+    });
+    applyLang();
+
+    // ── State ──────────────────────────────────────────────────────────────
+    let provider = null;       // ethers BrowserProvider
+    let signer = null;
+    let userAddress = null;
+    let lastSignedMessage = null;
+    let lastSignature = null;
+
+    // ── Wallet picker state (EIP-6963 multi-provider) ────────────────────
+    // Ключ (uuid или rdns) → { info, provider }
+    const detectedWallets = new Map();
+    // Выбранный пользователем провайдер (явный выбор, без fallback'ов)
+    let selectedProvider = null;
+    let selectedWalletKey = null;
+    // Listeners привязаны именно к selectedProvider — храним для off() при смене
+    let boundListeners = null;
+
+    const SELECTED_WALLET_STORAGE_KEY = 'sova-demo-selected-wallet';
+
+    function detectProvider() {
+      // Явный выбор: без fallback'ов. Если пользователь не выбрал кошелёк — null.
+      return selectedProvider;
+    }
+
+    // ── EIP-6963 provider discovery ──────────────────────────────────────
+    // Собираем все announces. MetaMask, SOVA, Rabby, Rainbow — каждый делает свой.
+    window.addEventListener('eip6963:announceProvider', (event) => {
+      const detail = event.detail;
+      if (!detail || !detail.provider || !detail.info) return;
+      const key = detail.info.uuid || detail.info.rdns || detail.info.name;
+      if (!key) return;
+      // Одна и та же info может быть announced несколько раз — игнорируем дубли
+      if (detectedWallets.has(key)) return;
+      detectedWallets.set(key, { info: detail.info, provider: detail.provider });
+      renderWalletPicker();
+      updateInstallWarning();
+      // Автовыбор: если сохранён предыдущий выбор и он соответствует этому
+      // провайдеру, восстанавливаем выбор без клика.
+      const savedKey = localStorage.getItem(SELECTED_WALLET_STORAGE_KEY);
+      if (savedKey && savedKey === key && !selectedProvider) {
+        selectWallet(key);
+      }
+    });
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+    // Legacy fallback: если провайдер не анонсирует EIP-6963, но живёт на
+    // window.ethereum (MetaMask старых версий, Brave Wallet и т.д.) — добавим
+    // его в picker как "Legacy wallet". Пользователь всё равно выбирает явно.
+    setTimeout(() => {
+      if (window.ethereum && detectedWallets.size === 0) {
+        const info = {
+          uuid: 'legacy-window-ethereum',
+          name: window.ethereum.isMetaMask ? 'MetaMask (legacy)' : 'Browser wallet (legacy)',
+          icon: '',
+          rdns: 'legacy.ethereum',
+        };
+        detectedWallets.set(info.uuid, { info, provider: window.ethereum });
+        renderWalletPicker();
+        updateInstallWarning();
+      }
+    }, 400);
+
+    // ── Wallet picker render ─────────────────────────────────────────────
+    function renderWalletPicker() {
+      const listEl = document.getElementById('wallet-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      if (detectedWallets.size === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'wallet-picker-empty';
+        empty.textContent = translations[currentLang].pickerEmpty;
+        listEl.appendChild(empty);
+        return;
+      }
+      for (const [key, entry] of detectedWallets.entries()) {
+        const isSelected = key === selectedWalletKey;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wallet-item' + (isSelected ? ' selected' : '');
+        btn.dataset.walletKey = key;
+
+        const iconWrap = document.createElement('div');
+        iconWrap.className = 'wallet-item-icon';
+        if (entry.info.icon && typeof entry.info.icon === 'string') {
+          const img = document.createElement('img');
+          img.src = entry.info.icon;
+          img.alt = '';
+          iconWrap.appendChild(img);
+        } else {
+          const initial = document.createElement('span');
+          initial.className = 'initial';
+          initial.textContent = (entry.info.name || '?').charAt(0).toUpperCase();
+          iconWrap.appendChild(initial);
+        }
+
+        const meta = document.createElement('div');
+        meta.className = 'wallet-item-meta';
+        const name = document.createElement('div');
+        name.className = 'wallet-item-name';
+        name.textContent = entry.info.name || 'Unknown wallet';
+        const rdns = document.createElement('div');
+        rdns.className = 'wallet-item-rdns';
+        rdns.textContent = entry.info.rdns || '';
+        meta.appendChild(name);
+        meta.appendChild(rdns);
+
+        const status = document.createElement('span');
+        status.className = 'wallet-item-status';
+        status.textContent = isSelected
+          ? translations[currentLang].pickerStatusSelected
+          : translations[currentLang].pickerStatusAvailable;
+
+        btn.appendChild(iconWrap);
+        btn.appendChild(meta);
+        btn.appendChild(status);
+        btn.addEventListener('click', () => selectWallet(key));
+        listEl.appendChild(btn);
+      }
+    }
+
+    // ── Select a wallet explicitly ───────────────────────────────────────
+    // При смене: отсоединяем старые listeners и резетим connection state.
+    function selectWallet(key) {
+      const entry = detectedWallets.get(key);
+      if (!entry) return;
+
+      // Если уже подключены к другому кошельку — сбрасываем состояние.
+      if (selectedProvider && selectedProvider !== entry.provider) {
+        detachProviderEvents();
+        userAddress = null;
+        provider = null;
+        signer = null;
+        setConnected(false);
+        setText('address-cell', '—');
+        setText('balance-cell', '—');
+        const cell = document.getElementById('network-cell');
+        if (cell) cell.textContent = '—';
+      }
+
+      selectedProvider = entry.provider;
+      selectedWalletKey = key;
+      localStorage.setItem(SELECTED_WALLET_STORAGE_KEY, key);
+      attachProviderEvents();
+      renderWalletPicker();
+      logEvent('wallet-selected', { name: entry.info.name, rdns: entry.info.rdns });
+      // Попытка восстановить уже существующую сессию (eth_accounts без approval)
+      restoreExistingSession().catch(() => {});
+    }
+
+    async function restoreExistingSession() {
+      const sova = detectProvider();
+      if (!sova) return;
+      try {
+        const accs = await sova.request({ method: 'eth_accounts' });
+        if (Array.isArray(accs) && accs.length > 0) {
+          userAddress = accs[0];
+          setText('address-cell', accs[0]);
+          setConnected(true);
+          const chain = await sova.request({ method: 'eth_chainId' });
+          networkBadge(chain);
+          refreshBalance();
+        }
+      } catch { /* not connected */ }
+    }
+
+    // ── UI helpers ────────────────────────────────────────────────────────
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(text == null ? '' : text);
+    }
+    function setResult(id, value, kind) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = '';
+      el.className = 'result' + (kind ? ' ' + kind : '');
+      if (typeof value === 'string') {
+        el.textContent = value;
+      } else {
+        el.textContent = JSON.stringify(value, null, 2);
+      }
+    }
+    function logEvent(name, data) {
+      const log = document.getElementById('events-log');
+      if (!log) return;
+      // Очистить «нет событий» при первом
+      if (log.querySelector('[data-lang="eventsEmpty"]')) {
+        log.innerHTML = '';
+      }
+      const row = document.createElement('div');
+      row.className = 'event-row';
+      const time = new Date().toTimeString().slice(0, 8);
+      row.innerHTML = `<span class="event-time">${time}</span><span class="event-name">${name}</span><span class="event-data"></span>`;
+      row.querySelector('.event-data').textContent = data == null ? '' : JSON.stringify(data);
+      log.insertBefore(row, log.firstChild);
+    }
+
+    function networkBadge(chainIdHex) {
+      const cell = document.getElementById('network-cell');
+      if (!cell) return;
+      cell.innerHTML = '';
+      let label = '?', cls = 'badge';
+      try {
+        const id = parseInt(chainIdHex, 16);
+        if (id === 1) { label = 'Ethereum Mainnet'; cls += ' mainnet'; }
+        else if (id === 11155111) { label = 'Sepolia testnet'; cls += ' testnet'; }
+        else if (id === 56) { label = 'BNB Chain'; cls += ' bsc'; }
+        else { label = `chainId ${id}`; }
+      } catch { label = chainIdHex; }
+      const span = document.createElement('span');
+      span.className = cls;
+      span.textContent = label;
+      cell.appendChild(span);
+    }
+
+    function setConnected(state) {
+      const badge = document.getElementById('conn-badge');
+      if (state) {
+        badge.className = 'badge connected';
+        badge.textContent = translations[currentLang].badgeConnected;
+        document.getElementById('btn-connect').disabled = true;
+        document.getElementById('btn-disconnect').disabled = false;
+      } else {
+        badge.className = 'badge disconnected';
+        badge.textContent = translations[currentLang].badgeDisconnected;
+        document.getElementById('btn-connect').disabled = false;
+        document.getElementById('btn-disconnect').disabled = true;
+      }
+    }
+
+    function updateInstallWarning() {
+      const warn = document.getElementById('install-warning');
+      // Warning показывается только если вообще ничего не обнаружено.
+      // Если что-то есть — picker сам подскажет пользователю что выбрать.
+      if (detectedWallets.size > 0) warn.classList.remove('show');
+      else warn.classList.add('show');
+    }
+
+    // ── Provider events ───────────────────────────────────────────────────
+    // Важно: listeners привязываются ТОЛЬКО к явно выбранному провайдеру.
+    // При смене кошелька detachProviderEvents() сначала снимает старые.
+    function attachProviderEvents() {
+      const sova = detectProvider();
+      if (!sova || !sova.on) return;
+      // Если уже привязано к этому же провайдеру — ничего не делаем
+      if (boundListeners && boundListeners.provider === sova) return;
+      // Если есть старые listeners — снимаем их
+      if (boundListeners) detachProviderEvents();
+
+      const onConnect = (info) => {
+        logEvent('connect', info);
+        if (info && info.chainId) networkBadge(info.chainId);
+      };
+      const onDisconnect = (err) => {
+        logEvent('disconnect', err && err.message);
+        userAddress = null;
+        setConnected(false);
+        setText('address-cell', '—');
+        setText('balance-cell', '—');
+      };
+      const onAccountsChanged = (accs) => {
+        logEvent('accountsChanged', accs);
+        if (Array.isArray(accs) && accs.length > 0) {
+          userAddress = accs[0];
+          setText('address-cell', accs[0]);
+          setConnected(true);
+          refreshBalance();
+        } else {
+          userAddress = null;
+          setConnected(false);
+          setText('address-cell', '—');
+          setText('balance-cell', '—');
+        }
+      };
+      const onChainChanged = (chainIdHex) => {
+        logEvent('chainChanged', chainIdHex);
+        networkBadge(chainIdHex);
+        if (userAddress) refreshBalance();
+      };
+
+      sova.on('connect', onConnect);
+      sova.on('disconnect', onDisconnect);
+      sova.on('accountsChanged', onAccountsChanged);
+      sova.on('chainChanged', onChainChanged);
+
+      boundListeners = {
+        provider: sova,
+        onConnect, onDisconnect, onAccountsChanged, onChainChanged,
+      };
+    }
+
+    function detachProviderEvents() {
+      if (!boundListeners) return;
+      const { provider: p, onConnect, onDisconnect, onAccountsChanged, onChainChanged } = boundListeners;
+      try {
+        if (typeof p.off === 'function') {
+          p.off('connect', onConnect);
+          p.off('disconnect', onDisconnect);
+          p.off('accountsChanged', onAccountsChanged);
+          p.off('chainChanged', onChainChanged);
+        } else if (typeof p.removeListener === 'function') {
+          p.removeListener('connect', onConnect);
+          p.removeListener('disconnect', onDisconnect);
+          p.removeListener('accountsChanged', onAccountsChanged);
+          p.removeListener('chainChanged', onChainChanged);
+        }
+      } catch { /* ignore */ }
+      boundListeners = null;
+    }
+
+    // ── Connect ───────────────────────────────────────────────────────────
+    // Хелпер: возвращает label кнопки connect из translations (всегда свежий,
+    // не зависит от текущего textContent'а кнопки).
+    function getConnectBtnLabel() {
+      return translations[currentLang].btnConnect;
+    }
+
+    document.getElementById('btn-connect').addEventListener('click', async () => {
+      const sova = detectProvider();
+      const btn = document.getElementById('btn-connect');
+      if (!sova) {
+        // Пользователь не выбрал кошелёк — подсвечиваем picker
+        const badge = document.getElementById('conn-badge');
+        badge.className = 'badge disconnected';
+        badge.textContent = currentLang === 'ru'
+          ? '⬆ Выберите кошелёк в списке выше'
+          : '⬆ Pick a wallet in the list above';
+        const picker = document.getElementById('wallet-picker');
+        if (picker) {
+          picker.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          picker.animate(
+            [{ boxShadow: '0 0 0 0 rgba(59,130,246,0.6)' }, { boxShadow: '0 0 0 8px rgba(59,130,246,0)' }],
+            { duration: 800, iterations: 2 }
+          );
+        }
+        updateInstallWarning();
+        return;
+      }
+      attachProviderEvents();
+      btn.disabled = true;
+      btn.textContent = currentLang === 'ru' ? 'Ожидание подтверждения…' : 'Waiting for approval…';
+      try {
+        const accs = await sova.request({ method: 'eth_requestAccounts' });
+        if (Array.isArray(accs) && accs.length > 0) {
+          userAddress = accs[0];
+          setText('address-cell', accs[0]);
+          setConnected(true);
+          provider = new ethers.BrowserProvider(sova);
+          signer = await provider.getSigner();
+          // Загружаем chain & balance
+          const chain = await sova.request({ method: 'eth_chainId' });
+          networkBadge(chain);
+          await refreshBalance();
+        }
+      } catch (err) {
+        logEvent('connect-error', err.message);
+        // Показываем ошибку в conn-badge (видимое место) а не только в read-result
+        const badge = document.getElementById('conn-badge');
+        badge.className = 'badge disconnected';
+        badge.textContent = err.code === 4001
+          ? (currentLang === 'ru' ? 'Отклонено' : 'Rejected')
+          : `${currentLang === 'ru' ? 'Ошибка' : 'Error'}: ${err.message.slice(0, 40)}`;
+        setResult('read-result', `Connect error: ${err.message}`, 'error');
+      } finally {
+        // ВАЖНО: всегда возвращаем кнопке нормальный label.
+        // disabled-статус управляется через setConnected() — на success оно
+        // остаётся true (потому что disconnect = следующее действие), на
+        // ошибке — false, т.к. user может повторить попытку.
+        btn.textContent = getConnectBtnLabel();
+        if (!userAddress) btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btn-disconnect').addEventListener('click', async () => {
+      const sova = detectProvider();
+      if (!sova) return;
+      // Настоящий site-initiated disconnect через EIP-2255 wallet_revokePermissions.
+      // SOVA удалит origin из connectedOrigins и broadcastит disconnect/accountsChanged.
+      try {
+        await sova.request({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }],
+        });
+        logEvent('disconnect-revoked', { origin: location.origin });
+      } catch (err) {
+        logEvent('disconnect-error', err.message);
+      }
+      // На всякий случай локально сбрасываем тоже — broadcast событие сработает асинхронно
+      userAddress = null;
+      provider = null;
+      signer = null;
+      setConnected(false);
+      setText('address-cell', '—');
+      setText('balance-cell', '—');
+    });
+
+    async function refreshBalance() {
+      if (!userAddress) return;
+      const sova = detectProvider();
+      if (!sova) return;
+      try {
+        const balanceHex = await sova.request({
+          method: 'eth_getBalance',
+          params: [userAddress, 'latest'],
+        });
+        const wei = BigInt(balanceHex);
+        const eth = ethers.formatEther(wei);
+        const chain = await sova.request({ method: 'eth_chainId' });
+        const id = parseInt(chain, 16);
+        const symbol = id === 56 ? 'BNB' : 'ETH';
+        setText('balance-cell', `${parseFloat(eth).toFixed(6)} ${symbol}`);
+      } catch (err) {
+        setText('balance-cell', `Error: ${err.message}`);
+      }
+    }
+
+    // ── Read-only ─────────────────────────────────────────────────────────
+    async function callReadOnly(method, params = []) {
+      const sova = detectProvider();
+      if (!sova) { setResult('read-result', 'SOVA not detected', 'error'); return; }
+      try {
+        const result = await sova.request({ method, params });
+        setResult('read-result', { method, result }, 'success');
+      } catch (err) {
+        setResult('read-result', { method, error: err.message }, 'error');
+      }
+    }
+    document.getElementById('btn-block').addEventListener('click', () => callReadOnly('eth_blockNumber'));
+    document.getElementById('btn-chain').addEventListener('click', () => callReadOnly('eth_chainId'));
+    document.getElementById('btn-balance').addEventListener('click', () => {
+      if (!userAddress) { setResult('read-result', 'Connect first to read balance', 'error'); return; }
+      callReadOnly('eth_getBalance', [userAddress, 'latest']);
+    });
+    document.getElementById('btn-gas').addEventListener('click', () => callReadOnly('eth_gasPrice'));
+
+    // ── Send transaction ──────────────────────────────────────────────────
+    document.getElementById('btn-send').addEventListener('click', async () => {
+      const sova = detectProvider();
+      if (!sova || !userAddress) {
+        setResult('send-result', 'Connect SOVA first', 'error');
+        return;
+      }
+      const to = document.getElementById('send-to').value.trim();
+      const amount = document.getElementById('send-amount').value.trim();
+      if (!ethers.isAddress(to)) {
+        setResult('send-result', 'Invalid address', 'error');
+        return;
+      }
+      try {
+        const valueHex = '0x' + ethers.parseEther(amount).toString(16);
+        const hash = await sova.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: userAddress, to, value: valueHex }],
+        });
+        const chain = await sova.request({ method: 'eth_chainId' });
+        const id = parseInt(chain, 16);
+        let explorer = 'https://etherscan.io/tx/';
+        if (id === 11155111) explorer = 'https://sepolia.etherscan.io/tx/';
+        else if (id === 56) explorer = 'https://bscscan.com/tx/';
+        const el = document.getElementById('send-result');
+        el.className = 'result success';
+        el.innerHTML = '';
+        const code = document.createElement('div');
+        code.textContent = `tx hash: ${hash}`;
+        const link = document.createElement('a');
+        link.href = explorer + hash;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'View on explorer ↗';
+        el.appendChild(code);
+        el.appendChild(document.createElement('br'));
+        el.appendChild(link);
+      } catch (err) {
+        setResult('send-result', `Error: ${err.message}`, 'error');
+      }
+    });
+
+    // ── personal_sign ─────────────────────────────────────────────────────
+    document.getElementById('btn-psign').addEventListener('click', async () => {
+      const sova = detectProvider();
+      if (!sova || !userAddress) {
+        setResult('psign-result', 'Connect SOVA first', 'error');
+        return;
+      }
+      const msg = document.getElementById('psign-message').value;
+      try {
+        // MetaMask convention: первым параметром идёт hex-строка, вторым адрес
+        const hex = '0x' + Array.from(new TextEncoder().encode(msg))
+          .map((b) => b.toString(16).padStart(2, '0')).join('');
+        const sig = await sova.request({
+          method: 'personal_sign',
+          params: [hex, userAddress],
+        });
+        lastSignedMessage = msg;
+        lastSignature = sig;
+        setResult('psign-result', sig, 'success');
+        document.getElementById('btn-psign-verify').disabled = false;
+      } catch (err) {
+        setResult('psign-result', `Error: ${err.message}`, 'error');
+      }
+    });
+
+    document.getElementById('btn-psign-verify').addEventListener('click', () => {
+      if (!lastSignature || !lastSignedMessage) return;
+      try {
+        const recovered = ethers.verifyMessage(lastSignedMessage, lastSignature);
+        const ok = recovered.toLowerCase() === (userAddress || '').toLowerCase();
+        setResult('psign-verify-result', ok
+          ? `OK: signed by ${recovered}`
+          : `Mismatch: recovered=${recovered}`, ok ? 'success' : 'error');
+      } catch (err) {
+        setResult('psign-verify-result', `Error: ${err.message}`, 'error');
+      }
+    });
+
+    // ── eth_signTypedData_v4 ──────────────────────────────────────────────
+    document.getElementById('btn-typed').addEventListener('click', async () => {
+      const sova = detectProvider();
+      if (!sova || !userAddress) {
+        setResult('typed-result', 'Connect SOVA first', 'error');
+        return;
+      }
+      // Получаем текущий chainId, чтобы domain.chainId совпадал
+      let chainId;
+      try { chainId = parseInt(await sova.request({ method: 'eth_chainId' }), 16); }
+      catch { chainId = 11155111; }
+      const typedData = {
+        types: {
+          EIP712Domain: [
+            { name: 'name', type: 'string' },
+            { name: 'version', type: 'string' },
+            { name: 'chainId', type: 'uint256' },
+            { name: 'verifyingContract', type: 'address' },
+          ],
+          Order: [
+            { name: 'maker', type: 'address' },
+            { name: 'amount', type: 'uint256' },
+            { name: 'asset', type: 'string' },
+            { name: 'expiration', type: 'uint256' },
+          ],
+        },
+        primaryType: 'Order',
+        domain: {
+          name: 'SOVA Demo',
+          version: '1',
+          chainId,
+          verifyingContract: '0x0000000000000000000000000000000000000000',
+        },
+        message: {
+          maker: userAddress,
+          amount: '1000000000000000000',
+          asset: 'ETH',
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+        },
+      };
+      try {
+        const sig = await sova.request({
+          method: 'eth_signTypedData_v4',
+          params: [userAddress, JSON.stringify(typedData)],
+        });
+        setResult('typed-result', sig, 'success');
+      } catch (err) {
+        setResult('typed-result', `Error: ${err.message}`, 'error');
+      }
+    });
+
+    // ── Raw playground ────────────────────────────────────────────────────
+    document.getElementById('btn-raw').addEventListener('click', async () => {
+      const sova = detectProvider();
+      if (!sova) { setResult('raw-result', 'SOVA not detected', 'error'); return; }
+      const raw = document.getElementById('raw-payload').value;
+      let payload;
+      try { payload = JSON.parse(raw); }
+      catch (err) { setResult('raw-result', `Invalid JSON: ${err.message}`, 'error'); return; }
+      try {
+        const result = await sova.request(payload);
+        setResult('raw-result', result, 'success');
+      } catch (err) {
+        setResult('raw-result', `Error: ${err.message}`, 'error');
+      }
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────
+    // renderWalletPicker() вызывается автоматически на каждом EIP-6963 announce.
+    // Если ничего не обнаружено в течение 400мс, legacy fallback добавит window.ethereum.
+    renderWalletPicker();
+    updateInstallWarning();
+    // Восстановление сессии происходит внутри selectWallet() если есть savedKey.
+    // Отдельный setTimeout больше не нужен — событие eip6963:announceProvider
+    // прилетает до init'а или сразу после, и логика автовыбора там.
+  </script>
+</body>
+</html>

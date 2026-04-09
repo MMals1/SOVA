@@ -77,23 +77,85 @@
     ];
   }
 
+  // ── Asset picker helpers ──────────────────────────────────────────
+  let _assetOptions = []; // [{value, label, type}]
+
+  function _buildAssetPicker(options) {
+    _assetOptions = options;
+    const hidden = document.getElementById('send-asset');
+    const label  = document.getElementById('send-asset-label');
+    const menu   = document.getElementById('send-asset-menu');
+    const picker = document.getElementById('send-asset-picker');
+    menu.textContent = '';
+
+    options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'asset-option' + (i === 0 ? ' active' : '');
+      btn.dataset.value = opt.value;
+      btn.dataset.index = i;
+      btn.innerHTML =
+        `<span class="asset-option-check">${i === 0 ? '✓' : ''}</span>` +
+        `<span>${opt.label}</span>` +
+        `<span class="asset-option-type">${opt.type}</span>`;
+      btn.addEventListener('click', () => _selectAsset(i));
+      menu.appendChild(btn);
+    });
+
+    if (options.length) {
+      hidden.value = options[0].value;
+      label.textContent = options[0].label;
+    }
+
+    // Toggle open/close
+    const trigger = document.getElementById('send-asset-trigger');
+    const newTrigger = trigger.cloneNode(true);
+    trigger.parentNode.replaceChild(newTrigger, trigger);
+    newTrigger.addEventListener('click', () => picker.classList.toggle('open'));
+
+    // Close on outside click
+    document.addEventListener('click', _closeAssetPickerOutside);
+  }
+
+  function _closeAssetPickerOutside(e) {
+    const picker = document.getElementById('send-asset-picker');
+    if (picker && !picker.contains(e.target)) {
+      picker.classList.remove('open');
+    }
+  }
+
+  function _selectAsset(index) {
+    const opt = _assetOptions[index];
+    if (!opt) return;
+    const hidden = document.getElementById('send-asset');
+    const label  = document.getElementById('send-asset-label');
+    const menu   = document.getElementById('send-asset-menu');
+    const picker = document.getElementById('send-asset-picker');
+
+    hidden.value = opt.value;
+    hidden.selectedIndex = index;
+    label.textContent = opt.label;
+
+    menu.querySelectorAll('.asset-option').forEach((btn, i) => {
+      btn.classList.toggle('active', i === index);
+      btn.querySelector('.asset-option-check').textContent = i === index ? '✓' : '';
+    });
+    picker.classList.remove('open');
+  }
+
+  // ── Show / reset ────────────────────────────────────────────────
   async function showSendScreen() {
     const tokens = await _getTokensForSelectedNetwork();
-    const select = document.getElementById('send-asset');
-    select.textContent = '';
     const nativeSymbol = _getNativeAssetSymbol();
 
-    const ethOpt = document.createElement('option');
-    ethOpt.value = 'ETH';
-    ethOpt.textContent = `${nativeSymbol} (Native)`;
-    select.appendChild(ethOpt);
-
+    const options = [
+      { value: 'ETH', label: `${nativeSymbol} (Native)`, type: 'Native' },
+    ];
     tokens.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.address;
-      opt.textContent = `${t.symbol} (ERC-20)`;
-      select.appendChild(opt);
+      options.push({ value: t.address, label: `${t.symbol} (ERC-20)`, type: 'ERC-20' });
     });
+
+    _buildAssetPicker(options);
 
     resetSendFlowUI({ clearInputs: true });
     if (typeof globalThis.showScreen === 'function') globalThis.showScreen('screen-send');
@@ -114,10 +176,9 @@
 
     const toEl = document.getElementById('send-to');
     const amountEl = document.getElementById('send-amount');
-    const assetEl = document.getElementById('send-asset');
     if (toEl) toEl.value = '';
     if (amountEl) amountEl.value = '';
-    if (assetEl) assetEl.selectedIndex = 0;
+    if (_assetOptions.length) _selectAsset(0);
   }
 
   // Шаг 1: валидация, оценка газа, показ экрана подтверждения
@@ -138,7 +199,22 @@
     clearMessages('send');
     clearMessages('confirm');
     if (!ethers.isAddress(to)) { showError('send', 'Неверный адрес получателя'); return; }
-    if (!amount || parseFloat(amount) <= 0) { showError('send', 'Введите корректную сумму'); return; }
+    // MED-12: строгая валидация суммы.
+    // Защита от:
+    //  - 'Infinity' → parseFloat('Infinity') === Infinity, проходит >0
+    //  - '1e-30' → 1e-30 > 0, но < 1 wei, ethers.parseEther падает
+    //  - '123abc' → parseFloat принимает частично
+    //  - '  ' → NaN
+    if (!amount) { showError('send', 'Введите сумму'); return; }
+    if (!/^\d+(\.\d+)?$/.test(amount)) {
+      showError('send', 'Некорректный формат суммы');
+      return;
+    }
+    const amountNum = parseFloat(amount);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      showError('send', 'Сумма должна быть > 0');
+      return;
+    }
 
     const ensureGuardFn = globalThis.WolfPopupNetworkState?.ensureMainnetSendGuard;
     if (typeof ensureGuardFn === 'function' && !(await ensureGuardFn())) return;

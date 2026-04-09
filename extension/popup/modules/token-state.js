@@ -28,6 +28,7 @@
   }
 
   const _UiMessages = globalThis.WolfPopupUiMessages;
+  const _Clipboard = globalThis.WolfPopupClipboard;
   const showError = _UiMessages
     ? _UiMessages.showError.bind(_UiMessages)
     : (p, m) => { const el = document.getElementById(`${p}-error`); if (el) { el.textContent = m; el.style.display = 'block'; } };
@@ -114,16 +115,48 @@
   async function loadTokenBalances(address) {
     const tokens = await getTokensForSelectedNetwork();
     const el = document.getElementById('token-list');
-    el.textContent = '';
 
     if (!tokens.length) {
-      const p = document.createElement('p');
-      p.className = 'empty';
-      p.textContent = 'Нет добавленных токенов';
-      el.appendChild(p);
+      // ВАЖНО: popup.html содержит initial placeholder <p class="empty">Загрузка…</p>
+      // Нужно ВСЕГДА обновлять текст на "Нет добавленных токенов",
+      // иначе пользователь видит вечную "Загрузка..." (bug fix).
+      const existing = el.querySelector('.empty');
+      if (existing) {
+        existing.textContent = 'Нет добавленных токенов';
+      } else {
+        el.textContent = '';
+        const p = document.createElement('p');
+        p.className = 'empty';
+        p.textContent = 'Нет добавленных токенов';
+        el.appendChild(p);
+      }
       return;
     }
 
+    // Если набор токенов не изменился — обновляем только цифры
+    const existingIds = [...el.querySelectorAll('.token-balance')].map(b => b.id);
+    const newIds = tokens.map(t => `tb-${t.address.slice(2, 10)}`);
+    const canUpdateInPlace = existingIds.length === newIds.length &&
+      existingIds.every((id, i) => id === newIds[i]);
+
+    if (canUpdateInPlace) {
+      await Promise.all(tokens.map(async t => {
+        const id = t.address.slice(2, 10);
+        try {
+          const contract = new ethers.Contract(t.address, ERC20_ABI, PopupState.provider);
+          const raw = await contract.balanceOf(address);
+          const formatted = _formatAmount(parseFloat(ethers.formatUnits(raw, t.decimals)));
+          const balEl = document.getElementById(`tb-${id}`);
+          if (balEl) balEl.textContent = `${formatted} ${t.symbol}`;
+        } catch {
+          const balEl = document.getElementById(`tb-${id}`);
+          if (balEl) balEl.textContent = '—';
+        }
+      }));
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
     tokens.forEach(t => {
       const id = t.address.slice(2, 10);
 
@@ -139,7 +172,6 @@
       const iconImg = document.createElement('img');
       iconImg.className = 'token-icon-img';
       iconImg.alt = `${t.symbol} logo`;
-      iconImg.loading = 'lazy';
 
       const iconFallback = document.createElement('span');
       iconFallback.className = 'token-icon-fallback';
@@ -147,16 +179,26 @@
 
       const logoUrls = getTokenLogoUrls(t.address, PopupState.selectedNetwork);
       if (logoUrls.length) {
+        // MED-9: timeout 3 сек на каждую попытку. Раньше slow CDN мог
+        // подвесить иконку на минуты — теперь fail-fast и переход к fallback.
+        const LOGO_LOAD_TIMEOUT_MS = 3000;
         let logoIndex = 0;
+        let loadTimer = null;
+        const clearLoadTimer = () => {
+          if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+        };
         const tryNextLogo = () => {
+          clearLoadTimer();
           if (logoIndex >= logoUrls.length) {
             iconImg.style.display = 'none';
             iconFallback.style.display = 'inline-flex';
             return;
           }
+          loadTimer = setTimeout(() => { tryNextLogo(); }, LOGO_LOAD_TIMEOUT_MS);
           iconImg.src = logoUrls[logoIndex++];
         };
         iconImg.addEventListener('load', () => {
+          clearLoadTimer();
           iconImg.style.display = 'block';
           iconFallback.style.display = 'none';
         });
@@ -175,7 +217,22 @@
 
       const addrEl = document.createElement('div');
       addrEl.className = 'token-addr';
-      addrEl.textContent = t.address.slice(0, 10) + '…';
+
+      const addrLabel = document.createElement('span');
+      addrLabel.textContent = `contract: ${t.address.slice(0, 6)}…${t.address.slice(-4)}`;
+      addrEl.appendChild(addrLabel);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'token-copy-btn';
+      copyBtn.textContent = 'copy';
+      copyBtn.title = t.address;
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (_Clipboard) _Clipboard.copyText(t.address);
+        copyBtn.textContent = '✓';
+        setTimeout(() => { copyBtn.textContent = 'copy'; }, 1000);
+      });
+      addrEl.appendChild(copyBtn);
 
       info.appendChild(symEl);
       info.appendChild(addrEl);
@@ -196,8 +253,11 @@
       item.appendChild(left);
       item.appendChild(balanceEl);
       item.appendChild(removeBtn);
-      el.appendChild(item);
+      fragment.appendChild(item);
     });
+
+    el.textContent = '';
+    el.appendChild(fragment);
 
     await Promise.all(tokens.map(async t => {
       const id = t.address.slice(2, 10);

@@ -10,5 +10,6 @@ describe('network state', () => {
     const address = '0xAbCdEf';
     expect(getTxScopeKey(address, 'eth-mainnet')).toBe('eth-mainnet:0xabcdef');
     expect(getTxScopeKey(address, 'eth-sepolia')).toBe('eth-sepolia:0xabcdef');
+    expect(getTxScopeKey(address, 'bsc')).toBe('bsc:0xabcdef');
   });
 });

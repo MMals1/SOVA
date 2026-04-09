@@ -97,6 +97,9 @@ const PopupUiState = (globalThis.WolfPopupUiState && typeof globalThis.WolfPopup
 const PopupEventBinder = (globalThis.WolfPopupEventBinder && typeof globalThis.WolfPopupEventBinder === 'object')
   ? globalThis.WolfPopupEventBinder
   : {};
+const PopupDappApproval = (globalThis.WolfPopupDappApproval && typeof globalThis.WolfPopupDappApproval === 'object')
+  ? globalThis.WolfPopupDappApproval
+  : {};
 
 const getLocal = PopupStorage.getLocal.bind(PopupStorage);
 const setLocal = PopupStorage.setLocal.bind(PopupStorage);
@@ -143,7 +146,7 @@ const NETWORKS = (PopupNetworkState && PopupNetworkState.NETWORKS)
       label: 'BNB Chain',
       badge: 'BNB Chain Mainnet',
       isTestnet: false,
-      defaultRpcUrl: getDefaultRpcUrl('bsc', 'https://bnb-mainnet.g.alchemy.com/v2/lrmoWsP5qrMt8_aezkh4p'),
+      defaultRpcUrl: getDefaultRpcUrl('bsc', 'https://bsc-rpc.publicnode.com'),
     },
   };
 const DEFAULT_NETWORK_KEY = (PopupNetworkState && PopupNetworkState.DEFAULT_NETWORK_KEY)
@@ -232,6 +235,12 @@ function getOrCreatePopupProvider(rpcUrl) {
   if (!key) return new ethers.JsonRpcProvider(rpcUrl);
   const cached = _providerCache.get(key);
   if (cached) return cached;
+  // Ограничиваем кэш — максимум 6 провайдеров (по 2 на сеть: default + custom).
+  // При превышении удаляем самый старый (первый добавленный).
+  if (_providerCache.size >= 6) {
+    const oldest = _providerCache.keys().next().value;
+    _providerCache.delete(oldest);
+  }
   const created = new ethers.JsonRpcProvider(key);
   _providerCache.set(key, created);
   return created;
@@ -293,38 +302,13 @@ function getTokenLogoUrls(tokenAddress, networkKey = selectedNetwork) {
   }
 }
 
+// P2-6: fallback'и удалены, модули гарантированно загружены через assertModulesLoaded
 async function getTokensForSelectedNetwork() {
-  if (typeof PopupTokenState.getTokensForSelectedNetwork === 'function') {
-    return PopupTokenState.getTokensForSelectedNetwork();
-  }
-  const { tokensByNetwork = {}, tokens: legacyTokens = [] } = await getLocal(['tokensByNetwork', 'tokens']);
-  let map = (tokensByNetwork && typeof tokensByNetwork === 'object') ? { ...tokensByNetwork } : {};
-
-  // Legacy migration: old global tokens -> active network tokens.
-  if ((!map[selectedNetwork] || !Array.isArray(map[selectedNetwork])) && Array.isArray(legacyTokens) && legacyTokens.length) {
-    map[selectedNetwork] = legacyTokens;
-    await setLocal({ tokensByNetwork: map });
-    await removeLocal('tokens');
-  }
-
-  if (typeof WalletCore.getTokensForNetwork === 'function') {
-    return WalletCore.getTokensForNetwork(map, selectedNetwork);
-  }
-  return Array.isArray(map[selectedNetwork]) ? map[selectedNetwork] : [];
+  return PopupTokenState.getTokensForSelectedNetwork();
 }
 
 async function setTokensForSelectedNetwork(tokens) {
-  if (typeof PopupTokenState.setTokensForSelectedNetwork === 'function') {
-    return PopupTokenState.setTokensForSelectedNetwork(tokens);
-  }
-  const { tokensByNetwork = {} } = await getLocal(['tokensByNetwork']);
-  const map = (typeof WalletCore.setTokensForNetwork === 'function')
-    ? WalletCore.setTokensForNetwork(tokensByNetwork, selectedNetwork, tokens)
-    : {
-      ...(tokensByNetwork && typeof tokensByNetwork === 'object' ? tokensByNetwork : {}),
-      [selectedNetwork]: Array.isArray(tokens) ? tokens : [],
-    };
-  await setLocal({ tokensByNetwork: map });
+  return PopupTokenState.setTokensForSelectedNetwork(tokens);
 }
 
 // Мнемоника хранится только в памяти во время квиза — после прохождения обнуляется
@@ -332,221 +316,190 @@ let _pendingMnemonic  = null;
 let _quizPositions    = []; // три случайных индекса [0..11]
 let _pendingTx        = null; // данные транзакции, ожидающей подтверждения
 
+// ── P2-6: Module loading assertion ──────────────────────────────────────
+// Все модули должны быть загружены через popup.html ДО popup.js (см. порядок
+// <script> тегов). Если модуль отсутствует — popup просто blank без объяснения,
+// поэтому делаем явную проверку на старте с понятным error message.
+function assertModulesLoaded() {
+  const requirements = {
+    WolfPopupStorage: ['getLocal', 'setLocal', 'removeLocal', 'getSession', 'setSession'],
+    WolfPopupUiMessages: ['showError', 'setStatus', 'showSuccess', 'clearMessages', 'setLoading'],
+    WolfPopupAvatar: ['setAvatar'],
+    WolfPopupClipboard: ['copyText'],
+    WolfPopupTemplates: ['renderNetworkPickers', 'renderFeedbackMounts'],
+    WolfPopupSharedState: [],
+    WolfPopupNetworkState: ['initializeNetworkState', 'getRpcUrlForNetwork', 'getCurrentNetworkMeta', 'setNetwork'],
+    WolfPopupTxHistory: ['loadTransactions', 'fetchAlchemyTransfers', 'renderTransactions'],
+    WolfPopupTokenState: ['getTokensForSelectedNetwork', 'loadTokenBalances', 'fetchTokenInfo'],
+    WolfPopupSendFlow: ['sendTransaction', 'confirmSend', 'showSendScreen'],
+    WolfPopupUiState: ['showScreen', 'switchTab', 'switchWalletTab'],
+    WolfPopupEventBinder: ['bindDeclarativeHandlers'],
+    WolfPopupDappApproval: ['getRequestIdFromUrl', 'handleRequest', 'renderConnectedSitesList'],
+  };
+  for (const [name, methods] of Object.entries(requirements)) {
+    const mod = globalThis[name];
+    if (!mod) {
+      throw new Error(`Required module not loaded: ${name}. Check popup.html script order.`);
+    }
+    for (const m of methods) {
+      if (typeof mod[m] !== 'function') {
+        throw new Error(`${name}.${m} is missing or not a function`);
+      }
+    }
+  }
+}
+
 // ── Инициализация (с миграцией старого формата) ───────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  PopupTemplates.renderNetworkPickers({
-    contexts: ['setup', 'wallet'],
-    defaultNetworkKey: DEFAULT_NETWORK_KEY,
-    networkKeys: ['eth-mainnet', 'eth-sepolia', 'bsc'],
-    networks: NETWORKS,
-    optionResolver: getNetworkPickerOption,
-  });
-  PopupTemplates.renderFeedbackMounts();
-  bindDeclarativeHandlers();
-  await initializeNetworkState();
-  provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
-  initNetworkPickerInteractions();
-  syncNetworkControls();
-
-  // Миграция: старый формат {keystore, address} → новый {accounts: [...]}
-  const legacy = await getLocal(['keystore', 'address', 'accounts', 'activeAccount']);
-  if (legacy.keystore && legacy.address && !legacy.accounts) {
-    await setLocal({
-      accounts: [{ address: legacy.address, keystore: legacy.keystore, name: 'Account 1' }],
-      activeAccount: 0,
-    });
-  }
-
-  const accounts = await getAccountsCached(true);
-  if (!accounts || accounts.length === 0) {
-    showScreen('screen-setup');
+  // P2-6: Assert все модули загружены ДО любой бизнес-логики.
+  // Если упало — показываем понятный error overlay.
+  try {
+    assertModulesLoaded();
+  } catch (e) {
+    console.error('[SOVA bootstrap]', e);
+    document.body.innerHTML = '';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'padding:24px;color:#f87171;font-family:monospace;';
+    const title = document.createElement('h2');
+    title.textContent = 'Ошибка инициализации SOVA Wallet';
+    const msg = document.createElement('p');
+    msg.style.cssText = 'margin-top:12px;font-size:13px;color:#888';
+    msg.textContent = e.message;
+    overlay.appendChild(title);
+    overlay.appendChild(msg);
+    document.body.appendChild(overlay);
     return;
   }
 
-  const { activeAccount } = await getLocal(['activeAccount']);
-  activeAccountIndex = (activeAccount != null && activeAccount < accounts.length) ? activeAccount : 0;
+  // LOW-14: Весь init обёрнут в try/catch. Если что-то упадёт —
+  // показываем error overlay вместо blank popup.
+  try {
+    PopupTemplates.renderNetworkPickers({
+      contexts: ['setup', 'wallet'],
+      defaultNetworkKey: DEFAULT_NETWORK_KEY,
+      networkKeys: ['eth-mainnet', 'eth-sepolia', 'bsc'],
+      networks: NETWORKS,
+      optionResolver: getNetworkPickerOption,
+    });
+    PopupTemplates.renderFeedbackMounts();
+    bindDeclarativeHandlers();
+    await initializeNetworkState();
+    provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
+    initNetworkPickerInteractions();
+    syncNetworkControls();
+    PopupNetworkState.loadEtherscanKeyIntoUi().catch(() => {});
 
-  const current = accounts[activeAccountIndex];
-  const { unlocked, unlockTime } = await getSession(['unlocked', 'unlockTime']);
-  const expired = !unlockTime || (Date.now() - unlockTime > AUTO_LOCK_MINUTES * 60 * 1000);
-
-  if (!unlocked || expired) {
-    setAvatar('unlock-avatar', current.address);
-    document.getElementById('unlock-address').textContent = shortAddr(current.address);
-    showScreen('screen-unlock');
-  } else {
-    if (await ensureActiveAccountInSW(current.address, activeAccountIndex)) {
-      await setSession({ unlockTime: Date.now() });
-      showScreen('screen-wallet');
-      loadWalletScreen(current.address);
-    } else {
-      await chrome.storage.session.clear();
-      setAvatar('unlock-avatar', current.address);
-      document.getElementById('unlock-address').textContent = shortAddr(current.address);
-      showScreen('screen-unlock');
+    // ── dApp approval mode: открыты с ?request=<id> в URL ──────────────
+    const dappRequestId = PopupDappApproval.getRequestIdFromUrl();
+    if (dappRequestId) {
+      showScreen('screen-dapp-approval');
+      PopupDappApproval.handleRequest(dappRequestId);
+      return;
     }
+
+    // Миграция: старый формат {keystore, address} → новый {accounts: [...]}
+    const legacy = await getLocal(['keystore', 'address', 'accounts', 'activeAccount']);
+    if (legacy.keystore && legacy.address && !legacy.accounts) {
+      await setLocal({
+        accounts: [{ address: legacy.address, keystore: legacy.keystore, name: 'Account 1' }],
+        activeAccount: 0,
+      });
+    }
+
+    const accounts = await getAccountsCached(true);
+    if (!accounts || accounts.length === 0) {
+      showScreen('screen-setup');
+      return;
+    }
+
+    const { activeAccount } = await getLocal(['activeAccount']);
+    activeAccountIndex = (activeAccount != null && activeAccount < accounts.length) ? activeAccount : 0;
+
+    const current = accounts[activeAccountIndex];
+    if (!current?.address) {
+      console.error('[popup] stored account has no address', { activeAccountIndex, total: accounts.length });
+      showScreen('screen-setup');
+      return;
+    }
+    const currentName = current.name || `Account ${activeAccountIndex + 1}`;
+    const { unlocked, unlockTime } = await getSession(['unlocked', 'unlockTime']);
+    const expired = !unlockTime || (Date.now() - unlockTime > AUTO_LOCK_MINUTES * 60 * 1000);
+
+    const goToUnlockFor = (acctName, acctAddress, statusText) => {
+      setAvatar('unlock-avatar', acctAddress);
+      document.getElementById('unlock-address').textContent = `${acctName} · ${shortAddr(acctAddress)}`;
+      document.getElementById('unlock-password').value = '';
+      clearMessages('unlock');
+      if (statusText) setStatus('unlock', statusText);
+      showScreen('screen-unlock');
+      setTimeout(() => document.getElementById('unlock-password')?.focus(), 50);
+    };
+
+    if (!unlocked || expired) {
+      goToUnlockFor(currentName, current.address, expired && unlocked ? 'Сессия истекла — войдите снова' : null);
+    } else {
+      if (await ensureActiveAccountInSW(current.address, activeAccountIndex)) {
+        await setSession({ unlockTime: Date.now() });
+        showScreen('screen-wallet');
+        loadWalletScreen(current.address);
+      } else {
+        await chrome.storage.session.clear();
+        goToUnlockFor(currentName, current.address, 'Сессия обновлена — введите пароль');
+      }
+    }
+  } catch (initErr) {
+    // LOW-14: error overlay. Без этого popup остаётся blank.
+    console.error('[SOVA popup init]', initErr);
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'padding:24px;color:#f87171;font-family:monospace;';
+    const title = document.createElement('h2');
+    title.textContent = 'Ошибка инициализации';
+    const msg = document.createElement('p');
+    msg.style.cssText = 'margin-top:12px;font-size:13px;color:#888;word-break:break-all;';
+    msg.textContent = initErr.message || String(initErr);
+    overlay.appendChild(title);
+    overlay.appendChild(msg);
+    document.body.appendChild(overlay);
   }
 });
 
+// P2-6: fallback удалён, PopupEventBinder загружен из modules/event-binder.js
 function bindDeclarativeHandlers() {
-  if (typeof PopupEventBinder.bindDeclarativeHandlers === 'function') {
-    return PopupEventBinder.bindDeclarativeHandlers();
-  }
-  const parseArgs = (argsRaw, event) => {
-    const raw = String(argsRaw || '').trim();
-    if (!raw) return [];
-
-    return raw.split(',').map((part) => {
-      const token = part.trim();
-      if (token === 'event') return event;
-      if (token === 'true') return true;
-      if (token === 'false') return false;
-      if (token === 'null') return null;
-      if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
-
-      const quoted = token.match(/^['"](.*)['"]$/);
-      if (quoted) return quoted[1];
-
-      return token;
-    });
-  };
-
-  const bindAttribute = (attrName, eventName) => {
-    document.querySelectorAll(`[${attrName}]`).forEach((el) => {
-      const expr = (el.getAttribute(attrName) || '').trim();
-      if (!expr) return;
-
-      const enterGuard = expr.match(/^if\s*\(\s*event\.key\s*===\s*['"]Enter['"]\s*\)\s*([A-Za-z_$][\w$]*)\(\s*\)\s*$/);
-      if (enterGuard) {
-        const fnName = enterGuard[1];
-        el.addEventListener(eventName, (event) => {
-          if (event.key !== 'Enter') return;
-          const fn = globalThis[fnName];
-          if (typeof fn === 'function') fn();
-        });
-        return;
-      }
-
-      const call = expr.match(/^([A-Za-z_$][\w$]*)\((.*)\)\s*$/);
-      if (!call) return;
-
-      const fnName = call[1];
-      const argsRaw = call[2];
-      el.addEventListener(eventName, (event) => {
-        const fn = globalThis[fnName];
-        if (typeof fn !== 'function') return;
-        const args = parseArgs(argsRaw, event);
-        fn(...args);
-      });
-    });
-  };
-
-  bindAttribute('data-onclick', 'click');
-  bindAttribute('data-onchange', 'change');
-  bindAttribute('data-oninput', 'input');
-  bindAttribute('data-onkeydown', 'keydown');
+  return PopupEventBinder.bindDeclarativeHandlers();
 }
 
+// P2-6: fallback'и удалены — все функции делегированы модулям
 async function initializeNetworkState() {
-  if (typeof PopupNetworkState.initializeNetworkState === 'function') {
-    return PopupNetworkState.initializeNetworkState();
-  }
-  const stored = await getLocal(['selectedChain', 'selectedNetwork', 'rpcByNetwork', 'rpcUrl']);
-
-  selectedChain = stored.selectedChain === DEFAULT_CHAIN_KEY ? DEFAULT_CHAIN_KEY : DEFAULT_CHAIN_KEY;
-  selectedNetwork = NETWORKS[stored.selectedNetwork] ? stored.selectedNetwork : DEFAULT_NETWORK_KEY;
-  rpcByNetwork = (stored.rpcByNetwork && typeof stored.rpcByNetwork === 'object')
-    ? { ...stored.rpcByNetwork }
-    : {};
-
-  // Миграция legacy-ключа: старый единый rpcUrl -> rpcByNetwork для выбранной сети.
-  if (stored.rpcUrl && !rpcByNetwork[selectedNetwork]) {
-    rpcByNetwork[selectedNetwork] = stored.rpcUrl;
-  }
-
-  await setLocal({
-    selectedChain,
-    selectedNetwork,
-    rpcByNetwork,
-  });
-  if (stored.rpcUrl) {
-    await removeLocal('rpcUrl');
-  }
+  return PopupNetworkState.initializeNetworkState();
 }
 
 function getRpcUrlForNetwork(networkKey, map = rpcByNetwork) {
-  if (typeof PopupNetworkState.getRpcUrlForNetwork === 'function') {
-    return PopupNetworkState.getRpcUrlForNetwork(networkKey, map);
-  }
-  const key = NETWORKS[networkKey] ? networkKey : DEFAULT_NETWORK_KEY;
-  return map?.[key] || NETWORKS[key].defaultRpcUrl;
+  return PopupNetworkState.getRpcUrlForNetwork(networkKey, map);
 }
 
 function getCurrentNetworkMeta() {
-  if (typeof PopupNetworkState.getCurrentNetworkMeta === 'function') {
-    return PopupNetworkState.getCurrentNetworkMeta();
-  }
-  return NETWORKS[selectedNetwork] || NETWORKS[DEFAULT_NETWORK_KEY];
+  return PopupNetworkState.getCurrentNetworkMeta();
 }
 
 function getNativeAssetSymbol(networkKey = selectedNetwork) {
-  if (typeof PopupNetworkState.getNativeAssetSymbol === 'function') {
-    return PopupNetworkState.getNativeAssetSymbol(networkKey);
-  }
-  return networkKey === 'bsc' ? 'BNB' : 'ETH';
+  return PopupNetworkState.getNativeAssetSymbol(networkKey);
 }
 
 function getMainnetSendGuardKey(networkKey = selectedNetwork) {
-  if (typeof PopupNetworkState.getMainnetSendGuardKey === 'function') {
-    return PopupNetworkState.getMainnetSendGuardKey(networkKey);
-  }
-  return `${MAINNET_SEND_GUARD_KEY_PREFIX}:${networkKey}`;
+  return PopupNetworkState.getMainnetSendGuardKey(networkKey);
 }
 
 // ── Навигация ─────────────────────────────────────────────────────────────────
 function showScreen(id) {
-  if (typeof PopupUiState.showScreen === 'function') {
-    return PopupUiState.showScreen(id);
-  }
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.getElementById('acct-menu')?.classList.add('hidden');
-  closeNetworkPickers();
-  if (id !== 'screen-wallet') stopAutoRefresh();
+  return PopupUiState.showScreen(id);
 }
 
-// ── Переключение табов Setup ──────────────────────────────────────────────────
 function switchTab(tab) {
-  if (typeof PopupUiState.switchTab === 'function') {
-    return PopupUiState.switchTab(tab);
-  }
-  document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector(`.tabs [data-tab="${tab}"]`).classList.add('active');
-  document.getElementById(`tab-${tab}`).classList.add('active');
+  return PopupUiState.switchTab(tab);
 }
 
-// ── Переключение вкладок кошелька ─────────────────────────────────────────────
 function switchWalletTab(tab) {
-  if (typeof PopupUiState.switchWalletTab === 'function') {
-    return PopupUiState.switchWalletTab(tab);
-  }
-  document.querySelectorAll('.wallet-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.wallet-tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector(`.wallet-tabs [data-tab="${tab}"]`).classList.add('active');
-  document.getElementById(`wallet-tab-${tab}`).classList.add('active');
-
-  const appRoot = document.getElementById('app');
-  appRoot?.classList.add('owl-state-tokens');
-  appRoot?.classList.remove('owl-state-history');
-
-  const logoImg = document.querySelector('.global-avatar img');
-  if (logoImg) {
-    if (logoImg.getAttribute('src') !== 'logo_new.png') {
-      logoImg.setAttribute('src', 'logo_new.png');
-    }
-    logoImg.dataset.state = 'tokens';
-  }
+  return PopupUiState.switchWalletTab(tab);
 }
 
 // ── Валидация пароля (только для создания/импорта, не для unlock) ──────────────
@@ -587,6 +540,11 @@ async function createWallet() {
 
     // Сохраняем RPC URL и обновляем провайдер
     await _saveRpcChoice(rpcChoice);
+
+    // Опционально: сохраняем Etherscan V2 ключ, если пользователь ввёл его
+    // в setup-форме. Ключ бесплатный, нужен для истории транзакций на BSC
+    // и опционально даёт более полную историю на других сетях.
+    await PopupNetworkState.saveEtherscanKey(PopupNetworkState._readEtherscanKeyFromUi());
 
     // Разблокируем SW — wallet живёт там, а не в popup
     await sendToSW({ type: 'unlock', password, accountIndex: activeAccountIndex });
@@ -641,6 +599,9 @@ async function importWallet() {
     // Сохраняем RPC URL и обновляем провайдер
     await _saveRpcChoice(rpcChoice);
 
+    // Опционально: сохраняем Etherscan V2 ключ, если пользователь ввёл его
+    await PopupNetworkState.saveEtherscanKey(PopupNetworkState._readEtherscanKeyFromUi());
+
     // Разблокируем SW — wallet живёт там, а не в popup
     await sendToSW({ type: 'unlock', password, accountIndex: activeAccountIndex });
 
@@ -681,13 +642,27 @@ async function unlockWallet() {
   setLoading('btn-unlock', false);
   setStatus('unlock', '');
 
+  // MED-11: address null-check. Если accounts пусты или index out-of-bounds,
+  // не крешим с "Cannot read properties of undefined", а возвращаемся в setup.
   const accounts = await getAccountsCached();
+  const acct = accounts[activeAccountIndex];
+  if (!acct?.address) {
+    console.error('[popup] active account missing after unlock', { activeAccountIndex, total: accounts.length });
+    showScreen('screen-setup');
+    return;
+  }
   showScreen('screen-wallet');
-  loadWalletScreen(accounts[activeAccountIndex].address);
+  loadWalletScreen(acct.address);
 }
 
 // ── Экран кошелька ────────────────────────────────────────────────────────────
 async function loadWalletScreen(address) {
+  // MED-11: defensive — не пытаемся что-либо показывать без адреса.
+  if (!address) {
+    console.error('[popup] loadWalletScreen called without address');
+    showScreen('screen-setup');
+    return;
+  }
   sendToSW({ type: 'reset-lock-timer' });
   setAvatar('wallet-avatar', address); // header-avatar не существует в HTML — убран
 
@@ -721,6 +696,7 @@ async function refreshActiveAccountData(force = false) {
 
   _autoRefreshInFlight = true;
   _lastAutoRefreshAt = now;
+  setBalanceRefreshIndicator(true);
   try {
     await Promise.all([
       loadBalance(address),
@@ -729,6 +705,7 @@ async function refreshActiveAccountData(force = false) {
     ]);
   } finally {
     _autoRefreshInFlight = false;
+    setBalanceRefreshIndicator(false);
   }
 }
 
@@ -768,204 +745,56 @@ async function loadBalance(address) {
   try {
     const wei = await provider.getBalance(address);
     document.getElementById('wallet-balance').textContent =
-      parseFloat(ethers.formatEther(wei)).toFixed(6);
+      formatAmount(parseFloat(ethers.formatEther(wei)));
   } catch {
     document.getElementById('wallet-balance').textContent = '—';
   }
+}
+
+function setBalanceRefreshIndicator(active) {
+  const el = document.getElementById('balance-refresh-indicator');
+  if (el) el.classList.toggle('active', !!active);
+  setTxRefreshIndicator(active);
 }
 
 async function refreshBalance() {
   const accounts = await getAccountsCached();
   const address = accounts[activeAccountIndex]?.address;
   if (!address) return;
-  document.getElementById('wallet-balance').textContent = '…';
   _autoRefreshAddress = address.toLowerCase();
+  setBalanceRefreshIndicator(true);
 
   // Балансы обновляем сразу, а транзакции — в фоне, чтобы UI реагировал быстрее.
-  await Promise.all([
-    loadBalance(address),
-    loadTokenBalances(address),
-  ]);
-  loadTransactions(address);
+  try {
+    await Promise.all([
+      loadBalance(address),
+      loadTokenBalances(address),
+    ]);
+    loadTransactions(address);
+  } finally {
+    setBalanceRefreshIndicator(false);
+  }
 }
 
-// ── ERC-20 токены ─────────────────────────────────────────────────────────────
+// ── ERC-20 токены (P2-6: fallback'и удалены, делегируются в PopupTokenState) ──
 async function loadTokenBalances(address) {
-  if (typeof PopupTokenState.loadTokenBalances === 'function') {
-    return PopupTokenState.loadTokenBalances(address);
-  }
-  const tokens = await getTokensForSelectedNetwork();
-  const el = document.getElementById('token-list');
-  el.textContent = ''; // безопасная очистка — без innerHTML
-
-  if (!tokens.length) {
-    const p = document.createElement('p');
-    p.className = 'empty';
-    p.textContent = 'Нет добавленных токенов';
-    el.appendChild(p);
-    return;
-  }
-
-  tokens.forEach(t => {
-    const id = t.address.slice(2, 10);
-
-    const item = document.createElement('div');
-    item.className = 'token-item';
-
-    // Левая часть: иконка + название
-    const left = document.createElement('div');
-    left.className = 'token-left';
-
-    const icon = document.createElement('div');
-    icon.className = 'token-icon';
-
-    const iconImg = document.createElement('img');
-    iconImg.className = 'token-icon-img';
-    iconImg.alt = `${t.symbol} logo`;
-    iconImg.loading = 'lazy';
-
-    const iconFallback = document.createElement('span');
-    iconFallback.className = 'token-icon-fallback';
-    iconFallback.textContent = t.symbol.slice(0, 4); // textContent — XSS невозможен
-
-    const logoUrls = getTokenLogoUrls(t.address, selectedNetwork);
-    if (logoUrls.length) {
-      let logoIndex = 0;
-      const tryNextLogo = () => {
-        if (logoIndex >= logoUrls.length) {
-          iconImg.style.display = 'none';
-          iconFallback.style.display = 'inline-flex';
-          return;
-        }
-        iconImg.src = logoUrls[logoIndex++];
-      };
-
-      iconImg.addEventListener('load', () => {
-        iconImg.style.display = 'block';
-        iconFallback.style.display = 'none';
-      });
-      iconImg.addEventListener('error', tryNextLogo);
-      tryNextLogo();
-    }
-
-    icon.appendChild(iconImg);
-    icon.appendChild(iconFallback);
-
-    const info = document.createElement('div');
-
-    const symEl = document.createElement('div');
-    symEl.className = 'token-symbol';
-    symEl.textContent = t.symbol; // textContent — XSS невозможен
-
-    const addrEl = document.createElement('div');
-    addrEl.className = 'token-addr';
-    addrEl.textContent = t.address.slice(0, 10) + '…'; // textContent — XSS невозможен
-
-    info.appendChild(symEl);
-    info.appendChild(addrEl);
-    left.appendChild(icon);
-    left.appendChild(info);
-
-    // Баланс
-    const balanceEl = document.createElement('span');
-    balanceEl.className = 'token-balance';
-    balanceEl.id = `tb-${id}`;
-    balanceEl.textContent = '…';
-
-    // Кнопка удаления — addEventListener вместо onclick в строке
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'token-remove';
-    removeBtn.title = 'Удалить';
-    removeBtn.textContent = '×';
-    removeBtn.addEventListener('click', () => removeToken(t.address));
-
-    item.appendChild(left);
-    item.appendChild(balanceEl);
-    item.appendChild(removeBtn);
-    el.appendChild(item);
-  });
-
-  await Promise.all(tokens.map(async t => {
-    const id = t.address.slice(2, 10);
-    try {
-      const contract  = new ethers.Contract(t.address, ERC20_ABI, provider);
-      const raw       = await contract.balanceOf(address);
-      const formatted = formatAmount(parseFloat(ethers.formatUnits(raw, t.decimals)));
-      const balEl = document.getElementById(`tb-${id}`);
-      if (balEl) balEl.textContent = `${formatted} ${t.symbol}`;
-    } catch {
-      const balEl = document.getElementById(`tb-${id}`);
-      if (balEl) balEl.textContent = '—';
-    }
-  }));
+  return PopupTokenState.loadTokenBalances(address);
 }
 
 function onTokenAddrChange() {
-  if (typeof PopupTokenState.onTokenAddrChange === 'function') {
-    return PopupTokenState.onTokenAddrChange();
-  }
-  const val = document.getElementById('token-address').value.trim();
-  document.getElementById('btn-fetch-token').disabled = !ethers.isAddress(val);
+  return PopupTokenState.onTokenAddrChange();
 }
 
 async function fetchTokenInfo() {
-  if (typeof PopupTokenState.fetchTokenInfo === 'function') {
-    return PopupTokenState.fetchTokenInfo();
-  }
-  const addr = document.getElementById('token-address').value.trim();
-  clearMessages('add-token');
-  if (!ethers.isAddress(addr)) { showError('add-token', 'Неверный адрес контракта'); return; }
-  setStatus('add-token', 'Загрузка информации…');
-  try {
-    const c = new ethers.Contract(addr, ERC20_ABI, provider);
-    const [symbol, decimals] = await Promise.all([c.symbol(), c.decimals()]);
-    document.getElementById('token-symbol').value   = symbol;
-    document.getElementById('token-decimals').value = decimals.toString();
-    setStatus('add-token', '');
-  } catch {
-    setStatus('add-token', '');
-    showError('add-token', 'Не удалось загрузить информацию о токене');
-  }
+  return PopupTokenState.fetchTokenInfo();
 }
 
 async function addToken() {
-  if (typeof PopupTokenState.addToken === 'function') {
-    return PopupTokenState.addToken();
-  }
-  const addr     = document.getElementById('token-address').value.trim();
-  const symbol   = document.getElementById('token-symbol').value.trim().toUpperCase();
-  const decimals = parseInt(document.getElementById('token-decimals').value) || 18;
-  clearMessages('add-token');
-  if (!ethers.isAddress(addr)) { showError('add-token', 'Неверный адрес контракта'); return; }
-  if (!symbol)                 { showError('add-token', 'Введите символ токена');     return; }
-
-  const tokens = await getTokensForSelectedNetwork();
-  if (tokens.some(t => t.address.toLowerCase() === addr.toLowerCase())) {
-    showError('add-token', 'Этот токен уже добавлен'); return;
-  }
-  tokens.push({ address: addr, symbol, decimals });
-  await setTokensForSelectedNetwork(tokens);
-
-  document.getElementById('token-address').value  = '';
-  document.getElementById('token-symbol').value   = '';
-  document.getElementById('token-decimals').value = '18';
-  document.getElementById('btn-fetch-token').disabled = true;
-
-  showScreen('screen-wallet');
-  const { accounts } = await getLocal(['accounts']);
-  const address = accounts[activeAccountIndex]?.address;
-  if (address) { loadTokenBalances(address); switchWalletTab('tokens'); }
+  return PopupTokenState.addToken();
 }
 
 async function removeToken(addr) {
-  if (typeof PopupTokenState.removeToken === 'function') {
-    return PopupTokenState.removeToken(addr);
-  }
-  const tokens = await getTokensForSelectedNetwork();
-  await setTokensForSelectedNetwork(tokens.filter(t => t.address.toLowerCase() !== addr.toLowerCase()));
-  const { accounts } = await getLocal(['accounts']);
-  const address = accounts[activeAccountIndex]?.address;
-  if (address) loadTokenBalances(address);
+  return PopupTokenState.removeToken(addr);
 }
 
 // ── Переключатель аккаунтов ───────────────────────────────────────────────────
@@ -1030,18 +859,29 @@ async function switchAccount(idx) {
   await setLocal({ activeAccount: idx });
   stopAutoRefresh();
 
-  const targetAddress = accounts[idx].address;
+  const targetAccount = accounts[idx];
+  const targetAddress = targetAccount.address;
+  const targetName = targetAccount.name || `Account ${idx + 1}`;
+
   if (await ensureActiveAccountInSW(targetAddress, idx)) {
     showScreen('screen-wallet');
     loadWalletScreen(targetAddress);
     return;
   }
 
+  // SW потерял этот кошелёк (Chrome убил SW, или другой keystore).
+  // Чистим устаревший session-флаг и показываем unlock screen
+  // с ЯВНЫМ указанием какой именно аккаунт разблокируем.
+  await chrome.storage.session.clear();
+
   setAvatar('unlock-avatar', targetAddress);
-  document.getElementById('unlock-address').textContent = shortAddr(targetAddress);
+  document.getElementById('unlock-address').textContent = `${targetName} · ${shortAddr(targetAddress)}`;
   document.getElementById('unlock-password').value = '';
   clearMessages('unlock');
+  setStatus('unlock', `Введите пароль для ${targetName}`);
   showScreen('screen-unlock');
+  // Фокусируем поле ввода пароля, чтобы пользователь сразу мог печатать
+  setTimeout(() => document.getElementById('unlock-password')?.focus(), 50);
 }
 
 // ── Добавить субаккаунт ───────────────────────────────────────────────────────
@@ -1070,6 +910,9 @@ async function addSubAccount() {
   accounts.push({ address: result.address, keystore: result.keystore, name: `Account ${result.index + 1}` });
   activeAccountIndex = result.index;
   await setLocal({ accounts, activeAccount: result.index });
+  // P2-5: invalidate accounts cache, иначе renderAccountMenu вернёт стейл данные
+  // (без только что добавленного субаккаунта)
+  setAccountsCache(accounts);
 
   document.getElementById('add-account-password').value = '';
   setLoading('btn-add-account', false);
@@ -1078,538 +921,56 @@ async function addSubAccount() {
   loadWalletScreen(result.address);
 }
 
+// P2-6: fallback удалён, модуль PopupTxHistory гарантированно загружен
+// (см. assertModulesLoaded в bootstrap)
 async function loadTransactions(address) {
-  if (typeof PopupTxHistory.loadTransactions === 'function') {
-    return PopupTxHistory.loadTransactions(address);
-  }
-  const scopeKey = getTxScopeKey(address);
-  if (_txLoadPromises.has(scopeKey)) {
-    return _txLoadPromises.get(scopeKey);
-  }
-
-  const run = (async () => {
-  const el = document.getElementById('tx-list');
-  setTxRefreshIndicator(true);
-
-  try {
-    const { [TX_SYNC_STATE_KEY]: syncState = {}, [TX_HISTORY_CACHE_KEY]: txCache = {} } =
-      await getLocal([TX_SYNC_STATE_KEY, TX_HISTORY_CACHE_KEY]);
-
-    const accountSync = syncState?.[scopeKey] || {};
-    const cachedTxs = Array.isArray(txCache?.[scopeKey]) ? txCache[scopeKey] : [];
-
-    const hasCheckpoint = Number.isInteger(accountSync.lastProcessedBlock) && accountSync.lastProcessedBlock >= 0;
-    const fromBlockHex = hasCheckpoint
-      ? `0x${(accountSync.lastProcessedBlock + 1).toString(16)}`
-      : '0x0';
-
-    // Мгновенно показываем кэш, чтобы список не исчезал во время обновления.
-    if (cachedTxs.length) {
-      renderTransactions(el, address, cachedTxs, selectedNetwork);
-    } else if (!el.children.length) {
-      const loadingEl = document.createElement('p');
-      loadingEl.className = 'empty';
-      loadingEl.textContent = 'Загрузка…';
-      el.textContent = '';
-      el.appendChild(loadingEl);
-    }
-
-    // После первичной загрузки читаем только «хвост» новых блоков.
-    const maxCount = hasCheckpoint ? TX_INCREMENTAL_MAX_COUNT : TX_INITIAL_MAX_COUNT;
-
-    let [sentRes, recvRes] = await Promise.all([
-      fetchAlchemyTransfers(address, 'from', { fromBlock: fromBlockHex, maxCount }),
-      fetchAlchemyTransfers(address, 'to', { fromBlock: fromBlockHex, maxCount }),
-    ]);
-
-    // Явно проверяем JSON-RPC ошибки
-    if (sentRes.error) throw new Error(sentRes.error.message || 'Alchemy error (from)');
-    if (recvRes.error) throw new Error(recvRes.error.message || 'Alchemy error (to)');
-
-    let sent = sentRes.result?.transfers || [];
-    let recv = recvRes.result?.transfers || [];
-
-    // Если checkpoint есть, но кэш пропал (например, из-за гонки/старого состояния),
-    // делаем один полный запрос, чтобы не терять уже существующую историю в UI.
-    if (hasCheckpoint && !cachedTxs.length && (sent.length + recv.length === 0)) {
-      [sentRes, recvRes] = await Promise.all([
-        fetchAlchemyTransfers(address, 'from', { fromBlock: '0x0', maxCount: TX_INITIAL_MAX_COUNT }),
-        fetchAlchemyTransfers(address, 'to', { fromBlock: '0x0', maxCount: TX_INITIAL_MAX_COUNT }),
-      ]);
-      if (sentRes.error) throw new Error(sentRes.error.message || 'Alchemy error (from)');
-      if (recvRes.error) throw new Error(recvRes.error.message || 'Alchemy error (to)');
-      sent = sentRes.result?.transfers || [];
-      recv = recvRes.result?.transfers || [];
-    }
-
-    // Объединяем новые tx, затем мержим с кэшем аккаунта.
-    const freshSeen = new Set();
-    const fresh = [...sent, ...recv]
-      .filter(tx => {
-        if (freshSeen.has(tx.hash)) return false;
-        freshSeen.add(tx.hash);
-        return true;
-      })
-      .sort((a, b) => (parseInt(b.blockNum, 16) || 0) - (parseInt(a.blockNum, 16) || 0));
-
-    const mergedSeen = new Set();
-    const baseForMerge = (hasCheckpoint && fresh.length === 0 && cachedTxs.length > 0)
-      ? cachedTxs
-      : [...fresh, ...cachedTxs];
-    const merged = baseForMerge
-      .filter(tx => {
-        if (mergedSeen.has(tx.hash)) return false;
-        mergedSeen.add(tx.hash);
-        return true;
-      })
-      .sort((a, b) => (parseInt(b.blockNum, 16) || 0) - (parseInt(a.blockNum, 16) || 0))
-      .slice(0, TX_HISTORY_LIMIT);
-
-    renderTransactions(el, address, merged, selectedNetwork);
-
-    const maxMergedBlock = merged.reduce(
-      (acc, tx) => Math.max(acc, parseInt(tx.blockNum, 16) || -1),
-      -1
-    );
-    const nextCheckpoint = Math.max(
-      hasCheckpoint ? accountSync.lastProcessedBlock : -1,
-      maxMergedBlock,
-    );
-
-    const nextSyncState = { ...syncState };
-    nextSyncState[scopeKey] = {
-      lastProcessedBlock: nextCheckpoint,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const nextCache = { ...txCache };
-    nextCache[scopeKey] = merged;
-
-    await setLocal({
-      [TX_SYNC_STATE_KEY]: nextSyncState,
-      [TX_HISTORY_CACHE_KEY]: nextCache,
-    });
-
-  } catch (e) {
-    console.error('[loadTransactions]', e);
-    // Если на экране уже есть предыдущий список, не затираем его при ошибке.
-    const hasRenderedTx = el.querySelector('.tx');
-    if (!hasRenderedTx) {
-      el.textContent = '';
-      const p = document.createElement('p');
-      p.className = 'empty';
-      p.textContent = 'Не удалось загрузить транзакции'; // ошибка НЕ выводится в DOM
-      el.appendChild(p);
-    }
-  } finally {
-    setTxRefreshIndicator(false);
-  }
-  })();
-
-  _txLoadPromises.set(scopeKey, run);
-  try {
-    await run;
-  } finally {
-    _txLoadPromises.delete(scopeKey);
-  }
+  return PopupTxHistory.loadTransactions(address);
 }
 
+// P2-6: tx-history функции делегированы PopupTxHistory модулю
 function setTxRefreshIndicator(active) {
-  if (typeof PopupTxHistory.setTxRefreshIndicator === 'function') {
-    return PopupTxHistory.setTxRefreshIndicator(active);
-  }
-  const el = document.getElementById('tx-refresh-indicator');
-  if (!el) return;
-  el.classList.toggle('active', !!active);
+  return PopupTxHistory.setTxRefreshIndicator(active);
 }
 
 function renderTransactions(el, address, txs, networkKey = selectedNetwork) {
-  if (typeof PopupTxHistory.renderTransactions === 'function') {
-    return PopupTxHistory.renderTransactions(el, address, txs, networkKey);
-  }
-  el.textContent = '';
-  const scopeKey = getTxScopeKey(address, networkKey);
-  const allTxs = Array.isArray(txs) ? txs : [];
-  _txRenderedState.set(scopeKey, {
-    address,
-    networkKey,
-    txs: allTxs,
-  });
-
-  const totalPages = typeof WalletCore.getTotalPages === 'function'
-    ? WalletCore.getTotalPages(allTxs.length, TX_PAGE_SIZE)
-    : Math.max(1, Math.ceil(allTxs.length / TX_PAGE_SIZE));
-  const requestedPage = _txPaginationState.get(scopeKey) || 1;
-  const currentPage = typeof WalletCore.clampPage === 'function'
-    ? WalletCore.clampPage(requestedPage, totalPages)
-    : Math.min(totalPages, Math.max(1, requestedPage));
-  _txPaginationState.set(scopeKey, currentPage);
-
-  updateTxPaginationUI(scopeKey, allTxs.length, currentPage, totalPages);
-
-  if (!allTxs.length) {
-    const p = document.createElement('p');
-    p.className = 'empty';
-    p.textContent = 'Транзакций пока нет';
-    el.appendChild(p);
-    return;
-  }
-
-  const pageTxs = typeof WalletCore.paginateItems === 'function'
-    ? WalletCore.paginateItems(allTxs, currentPage, TX_PAGE_SIZE).items
-    : allTxs.slice((currentPage - 1) * TX_PAGE_SIZE, currentPage * TX_PAGE_SIZE);
-
-  pageTxs.forEach(tx => {
-    const isOut  = tx.from?.toLowerCase() === address.toLowerCase();
-    const peerLabel = isOut ? 'to' : 'from';
-    const peerAddress = isOut ? tx.to : tx.from;
-    const safePeer = peerAddress || 'unknown';
-    const amount = tx.value != null ? formatAmount(parseFloat(tx.value)) : '?';
-    const asset  = tx.asset || 'ETH';
-    const txHash = tx.hash || '';
-
-    const txEl = document.createElement('div');
-    txEl.className = 'tx';
-
-    const leftEl = document.createElement('div');
-    leftEl.className = 'tx-left';
-
-    const dirEl = document.createElement('span');
-    dirEl.className = `tx-dir ${isOut ? 'out' : 'in'}`;
-    dirEl.textContent = `${isOut ? '↗ out' : '↙ in'}`;
-
-    const peerEl = document.createElement('div');
-    peerEl.className = 'tx-peer';
-    peerEl.title = `${peerLabel}: ${safePeer}`;
-    peerEl.textContent = `${peerLabel}: ${shortAddr(safePeer)}`;
-
-    const hashRowEl = document.createElement('div');
-    hashRowEl.className = 'tx-hash-row';
-
-    const linkEl = document.createElement('a');
-    linkEl.className = 'tx-link';
-    linkEl.href = `${getTxExplorerBaseUrl(networkKey)}${encodeURIComponent(txHash)}`;
-    linkEl.target = '_blank';
-    linkEl.rel = 'noopener noreferrer';
-    linkEl.title = txHash;
-    linkEl.textContent = txHash
-      ? `${txHash.slice(0, 6)}…${txHash.slice(-4)}`
-      : 'hash: n/a';
-
-    const copyBtn = document.createElement('button');
-    copyBtn.type = 'button';
-    copyBtn.className = 'tx-copy';
-    copyBtn.textContent = 'copy';
-    copyBtn.title = 'Скопировать хэш';
-    copyBtn.disabled = !txHash;
-    copyBtn.addEventListener('click', () => copyTxHash(txHash, copyBtn));
-
-    leftEl.appendChild(dirEl);
-    leftEl.appendChild(peerEl);
-    hashRowEl.appendChild(linkEl);
-    hashRowEl.appendChild(copyBtn);
-    leftEl.appendChild(hashRowEl);
-
-    const amountEl = document.createElement('span');
-    amountEl.className = `tx-amount ${isOut ? 'out' : 'inc'}`;
-    amountEl.textContent = `${isOut ? '−' : '+'}${amount} ${asset}`;
-
-    txEl.appendChild(leftEl);
-    txEl.appendChild(amountEl);
-    el.appendChild(txEl);
-  });
+  return PopupTxHistory.renderTransactions(el, address, txs, networkKey);
 }
 
 function updateTxPaginationUI(scopeKey, totalTxs, currentPage, totalPages) {
-  if (typeof PopupTxHistory.updateTxPaginationUI === 'function') {
-    return PopupTxHistory.updateTxPaginationUI(scopeKey, totalTxs, currentPage, totalPages);
-  }
-  const container = document.getElementById('tx-pagination');
-  const prevBtn = document.getElementById('tx-page-prev');
-  const nextBtn = document.getElementById('tx-page-next');
-  const info = document.getElementById('tx-page-info');
-  if (!container || !prevBtn || !nextBtn || !info) return;
-
-  if (!totalTxs) {
-    container.style.display = 'none';
-    return;
-  }
-
-  container.style.display = 'flex';
-  prevBtn.disabled = currentPage <= 1;
-  nextBtn.disabled = currentPage >= totalPages;
-  info.textContent = `Страница ${currentPage} / ${totalPages} • ${totalTxs} tx`;
-
-  container.dataset.scopeKey = scopeKey;
+  return PopupTxHistory.updateTxPaginationUI(scopeKey, totalTxs, currentPage, totalPages);
 }
 
 async function changeTxPage(delta) {
-  if (typeof PopupTxHistory.changeTxPage === 'function') {
-    return PopupTxHistory.changeTxPage(delta);
-  }
-  if (!delta) return;
-
-  const { accounts = [] } = await getLocal(['accounts']);
-  const address = accounts[activeAccountIndex]?.address;
-  if (!address) return;
-
-  const scopeKey = getTxScopeKey(address);
-  const rendered = _txRenderedState.get(scopeKey);
-  if (!rendered || !Array.isArray(rendered.txs) || rendered.txs.length === 0) return;
-
-  const totalPages = Math.max(1, Math.ceil(rendered.txs.length / TX_PAGE_SIZE));
-  const currentPage = _txPaginationState.get(scopeKey) || 1;
-  const nextPage = Math.min(totalPages, Math.max(1, currentPage + delta));
-  if (nextPage === currentPage) return;
-
-  _txPaginationState.set(scopeKey, nextPage);
-  const el = document.getElementById('tx-list');
-  if (!el) return;
-  renderTransactions(el, rendered.address, rendered.txs, rendered.networkKey);
+  return PopupTxHistory.changeTxPage(delta);
 }
 
 async function copyTxHash(hash, buttonEl) {
-  if (typeof PopupTxHistory.copyTxHash === 'function') {
-    return PopupTxHistory.copyTxHash(hash, buttonEl);
-  }
-  if (!hash) return;
-  const prevText = buttonEl?.textContent || 'copy';
-  await copyText(hash);
-  if (!buttonEl) return;
-  buttonEl.textContent = 'copied';
-  setTimeout(() => {
-    buttonEl.textContent = prevText;
-  }, 1000);
+  return PopupTxHistory.copyTxHash(hash, buttonEl);
 }
 
 async function fetchAlchemyTransfers(address, direction, opts = {}) {
-  if (typeof PopupTxHistory.fetchAlchemyTransfers === 'function') {
-    return PopupTxHistory.fetchAlchemyTransfers(address, direction, opts);
-  }
-  // Берём актуальную сеть и её RPC из storage (учитывая кастомный URL для конкретной сети).
-  const stored = await getLocal(['selectedNetwork', 'rpcByNetwork']);
-  const networkKey = NETWORKS[stored.selectedNetwork] ? stored.selectedNetwork : selectedNetwork;
-  const activeUrl = getRpcUrlForNetwork(networkKey, stored.rpcByNetwork || rpcByNetwork);
-
-  const body = {
-    id: 1, jsonrpc: '2.0',
-    method: 'alchemy_getAssetTransfers',
-    params: [{
-      fromBlock:        '0x0',
-      toBlock:          opts.toBlock || 'latest',
-      category:         ['external', 'erc20'],
-      withMetadata:     false,
-      excludeZeroValue: true,
-      maxCount:         opts.maxCount || '0x14',
-      [direction === 'from' ? 'fromAddress' : 'toAddress']: address,
-    }],
-  };
-  body.params[0].fromBlock = opts.fromBlock || '0x0';
-  const res = await fetch(activeUrl, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  return PopupTxHistory.fetchAlchemyTransfers(address, direction, opts);
 }
 
-// ── Отправка транзакции ───────────────────────────────────────────────────────
+// ── Отправка транзакции (P2-6: делегировано в PopupSendFlow) ─────────────
 async function showSendScreen() {
-  if (typeof PopupSendFlow.showSendScreen === 'function') {
-    return PopupSendFlow.showSendScreen();
-  }
-  const tokens = await getTokensForSelectedNetwork();
-  const select = document.getElementById('send-asset');
-  select.textContent = ''; // безопасная очистка
-  const nativeSymbol = getNativeAssetSymbol();
-
-  // ETH — статичная опция
-  const ethOpt = document.createElement('option');
-  ethOpt.value = 'ETH';
-  ethOpt.textContent = `${nativeSymbol} (Native)`;
-  select.appendChild(ethOpt);
-
-  // ERC-20 токены — value и textContent отдельно, не через шаблон
-  tokens.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.address;           // setAttribute безопасен для value
-    opt.textContent = `${t.symbol} (ERC-20)`; // textContent — XSS невозможен
-    select.appendChild(opt);
-  });
-
-  resetSendFlowUI({ clearInputs: true });
-
-  showScreen('screen-send');
+  return PopupSendFlow.showSendScreen();
 }
 
 function resetSendFlowUI({ clearInputs = false } = {}) {
-  if (typeof PopupSendFlow.resetSendFlowUI === 'function') {
-    return PopupSendFlow.resetSendFlowUI({ clearInputs });
-  }
-  _pendingTx = null;
-  clearMessages('send');
-  clearMessages('confirm');
-
-  const confirmIds = ['confirm-to', 'confirm-amount', 'confirm-asset', 'confirm-gas-estimate', 'confirm-total'];
-  confirmIds.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '';
-  });
-
-  if (!clearInputs) return;
-
-  const toEl = document.getElementById('send-to');
-  const amountEl = document.getElementById('send-amount');
-  const assetEl = document.getElementById('send-asset');
-  if (toEl) toEl.value = '';
-  if (amountEl) amountEl.value = '';
-  if (assetEl) assetEl.selectedIndex = 0;
+  return PopupSendFlow.resetSendFlowUI({ clearInputs });
 }
 
-// Подпись и отправка транзакции — приватный ключ остаётся в SW, сюда не приходит
-// Шаг 1: валидация, оценка газа, показ экрана подтверждения
 async function sendTransaction() {
-  if (typeof PopupSendFlow.sendTransaction === 'function') {
-    return PopupSendFlow.sendTransaction();
-  }
-  const { accounts = [] } = await getLocal(['accounts']);
-  const activeAddress = accounts[activeAccountIndex]?.address;
-  if (!activeAddress || !(await ensureActiveAccountInSW(activeAddress, activeAccountIndex))) {
-    await handleSWLocked();
-    return;
-  }
-
-  const to     = document.getElementById('send-to').value.trim();
-  const amount = document.getElementById('send-amount').value.trim();
-  const asset  = document.getElementById('send-asset').value;
-
-  clearMessages('send');
-  clearMessages('confirm');
-  if (!ethers.isAddress(to))              { showError('send', 'Неверный адрес получателя'); return; }
-  if (!amount || parseFloat(amount) <= 0) { showError('send', 'Введите корректную сумму');  return; }
-  if (!(await ensureMainnetSendGuard())) return;
-
-  setLoading('btn-send', true);
-  setStatus('send', 'Оценка газа…');
-
-  try {
-    const nativeSymbol = getNativeAssetSymbol();
-    let gasEstimateWei, assetLabel, token;
-
-    if (asset === 'ETH') {
-      assetLabel = nativeSymbol;
-      const txRequest = {
-        to,
-        value: ethers.parseEther(amount),
-        chainId: getCurrentNetworkMeta().chainId,
-      };
-      gasEstimateWei = await provider.estimateGas(txRequest);
-    } else {
-      const tokens = await getTokensForSelectedNetwork();
-      token = tokens.find(t => t.address.toLowerCase() === asset.toLowerCase());
-      if (!token) { showError('send', 'Токен не найден'); return; }
-      assetLabel = token.symbol;
-      const contract = new ethers.Contract(token.address, ERC20_ABI, provider);
-      const { accounts } = await getLocal(['accounts']);
-      const from = accounts[activeAccountIndex]?.address;
-      const data = contract.interface.encodeFunctionData('transfer', [
-        to, ethers.parseUnits(amount, token.decimals),
-      ]);
-      gasEstimateWei = await provider.estimateGas({ from, to: token.address, data });
-    }
-
-    const feeData = await provider.getFeeData();
-    const gasPrice = feeData.gasPrice ?? feeData.maxFeePerGas ?? 0n;
-    const gasCostWei = gasEstimateWei * gasPrice;
-    const gasCostEth = parseFloat(ethers.formatEther(gasCostWei));
-
-    // Для ETH: итого = сумма + газ; для ERC-20: итого газ отдельно
-    const totalText = asset === 'ETH'
-      ? `${formatAmount(parseFloat(amount) + gasCostEth)} ${nativeSymbol}`
-      : `${amount} ${assetLabel} + ${formatAmount(gasCostEth)} ${nativeSymbol} (газ)`;
-
-    _pendingTx = { to, amount, asset, token: token || null };
-
-    document.getElementById('confirm-to').textContent = to;
-    document.getElementById('confirm-amount').textContent = `${amount}`;
-    document.getElementById('confirm-asset').textContent = assetLabel;
-    document.getElementById('confirm-gas-estimate').textContent = `~${formatAmount(gasCostEth)} ${nativeSymbol}`;
-    document.getElementById('confirm-total').textContent = totalText;
-
-    clearMessages('send');
-    showScreen('screen-confirm-tx');
-
-  } catch (e) {
-    if (e.message?.includes('insufficient funds')) {
-      showError('send', 'Недостаточно средств');
-    } else {
-      showError('send', 'Ошибка оценки газа');
-    }
-  } finally {
-    setLoading('btn-send', false);
-    setStatus('send', '');
-  }
+  return PopupSendFlow.sendTransaction();
 }
 
-// Шаг 2: пользователь подтвердил — отправляем в SW
 async function confirmSend() {
-  if (typeof PopupSendFlow.confirmSend === 'function') {
-    return PopupSendFlow.confirmSend();
-  }
-  if (!_pendingTx) { showScreen('screen-send'); return; }
-  sendToSW({ type: 'reset-lock-timer' });
-  clearMessages('confirm');
-  setLoading('btn-confirm-send', true);
-  setStatus('confirm', 'Подпись и отправка…');
-
-  try {
-    const { to, amount, asset, token } = _pendingTx;
-    let result;
-
-    if (asset === 'ETH') {
-      result = await sendToSW({ type: 'send-eth', to, amount });
-    } else {
-      result = await sendToSW({
-        type: 'send-erc20', to, amount,
-        tokenAddress: token.address,
-        decimals:     token.decimals,
-      });
-    }
-
-    if (!result?.ok) {
-      if (result?.error === 'locked') { _pendingTx = null; await handleSWLocked(); return; }
-      let errMsg = 'Ошибка отправки';
-      if (result?.error?.includes('insufficient funds')) errMsg = 'Недостаточно средств';
-      else if (result?.error?.includes('nonce'))         errMsg = 'Ошибка nonce — попробуйте ещё раз';
-      showError('confirm', errMsg);
-      return;
-    }
-
-    _pendingTx = null;
-    showSuccess('confirm', `Отправлено! ${result.hash.slice(0, 20)}…`);
-
-    setTimeout(async () => {
-      showScreen('screen-wallet');
-      const { accounts } = await getLocal(['accounts']);
-      loadWalletScreen(accounts[activeAccountIndex].address);
-    }, 2000);
-
-  } catch {
-    showError('confirm', 'Ошибка отправки');
-  } finally {
-    setLoading('btn-confirm-send', false);
-    setStatus('confirm', '');
-  }
+  return PopupSendFlow.confirmSend();
 }
 
-// Отмена — возврат к экрану отправки
 function cancelSend() {
-  if (typeof PopupSendFlow.cancelSend === 'function') {
-    return PopupSendFlow.cancelSend();
-  }
-  _pendingTx = null;
-  showScreen('screen-send');
+  return PopupSendFlow.cancelSend();
 }
 
 // ── Копирование адреса ────────────────────────────────────────────────────────
@@ -1651,10 +1012,13 @@ function confirmMnemonic() {
   showScreen('screen-quiz');
 }
 
-// Выбираем 3 случайных уникальных позиции из 12, сортируем по возрастанию
+// LOW-15: Выбираем 5 случайных уникальных позиций из 12 (было 3).
+// 5 из 12 → ~5% шанс угадать все (1/C(12,5)≈0.13%, фактически ниже
+// из-за порядка). 3 из 12 было слишком мало для security.
+const QUIZ_WORD_COUNT = 5;
 function _pickQuizPositions() {
   const positions = new Set();
-  while (positions.size < 3) {
+  while (positions.size < QUIZ_WORD_COUNT) {
     positions.add(Math.floor(Math.random() * 12));
   }
   return Array.from(positions).sort((a, b) => a - b);
@@ -1680,7 +1044,7 @@ function _renderQuiz() {
     inp.autocomplete  = 'off';
     inp.spellcheck    = false;
     // Enter на последнем поле → проверяем
-    if (i === 2) inp.addEventListener('keydown', e => { if (e.key === 'Enter') verifyQuiz(); });
+    if (i === QUIZ_WORD_COUNT - 1) inp.addEventListener('keydown', e => { if (e.key === 'Enter') verifyQuiz(); });
 
     field.appendChild(lbl);
     field.appendChild(inp);
@@ -1744,10 +1108,15 @@ async function lockWallet() {
   // SW обнуляет _wallet и очищает session storage
   await sendToSW({ type: 'lock' });
   const { accounts } = await getLocal(['accounts']);
-  const address = accounts[activeAccountIndex]?.address;
+  const acct = accounts[activeAccountIndex];
+  const address = acct?.address;
+  const name = acct?.name || `Account ${activeAccountIndex + 1}`;
   setAvatar('unlock-avatar', address);
-  document.getElementById('unlock-address').textContent = shortAddr(address);
+  document.getElementById('unlock-address').textContent = address ? `${name} · ${shortAddr(address)}` : '';
+  document.getElementById('unlock-password').value = '';
+  clearMessages('unlock');
   showScreen('screen-unlock');
+  setTimeout(() => document.getElementById('unlock-password')?.focus(), 50);
 }
 
 async function resetWallet() {
@@ -1790,279 +1159,126 @@ function shortAddr(addr) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 }
 
-// ── Выбор API ключа ───────────────────────────────────────────────────────────
-// Провайдеры, разрешённые CSP в manifest.json (connect-src).
-// При добавлении нового провайдера — обновить оба места одновременно.
-const ALLOWED_RPC_HOSTS = [
-  'eth-mainnet.g.alchemy.com',
-  'eth-sepolia.g.alchemy.com',
-  '.g.alchemy.com',
-  '.infura.io',
-  '.quiknode.pro',
-  '.publicnode.com',
-];
+// ── RPC hosts whitelist (MED-13: консолидировано в shared/rpc-hosts.js) ─
+// Раньше дублировалось тут и в network-state.js. Теперь оба импортируют
+// из единого источника правды WolfWalletRpcHosts.
+const ALLOWED_RPC_HOSTS = (globalThis.WolfWalletRpcHosts && Array.isArray(globalThis.WolfWalletRpcHosts.ALLOWED_RPC_HOSTS))
+  ? globalThis.WolfWalletRpcHosts.ALLOWED_RPC_HOSTS
+  : [];
 
-// Читает состояние чекбокса и поля ввода на экране setup.
-// Возвращает { ok, url, useDefault } или { ok: false, error }
+// ── Network functions (P2-6: делегированы в PopupNetworkState) ────────────
 function _readRpcChoice() {
-  if (typeof PopupNetworkState._readRpcChoice === 'function') {
-    return PopupNetworkState._readRpcChoice();
-  }
-  const useDefault = document.getElementById('use-default-key')?.checked !== false;
-  const customUrl  = document.getElementById('custom-rpc-url')?.value.trim() || '';
-
-  if (!useDefault) {
-    if (!customUrl) {
-      return { ok: false, error: 'Введите RPC URL или используйте встроенный ключ' };
-    }
-    if (!customUrl.startsWith('https://')) {
-      return { ok: false, error: 'URL должен начинаться с https://' };
-    }
-    let urlHost;
-    try { urlHost = new URL(customUrl).hostname; }
-    catch { return { ok: false, error: 'Некорректный URL' }; }
-    const allowed = ALLOWED_RPC_HOSTS.some(h => urlHost === h || urlHost.endsWith(h));
-    if (!allowed) {
-      return { ok: false, error: 'Провайдер не поддерживается. Используйте Alchemy, Infura или QuikNode.' };
-    }
-  }
-
-  return { ok: true, useDefault, url: useDefault ? null : customUrl, networkKey: selectedNetwork };
+  return PopupNetworkState._readRpcChoice();
 }
 
-// Сохраняет выбор в хранилище и обновляет провайдер
 async function _saveRpcChoice(choice) {
-  if (typeof PopupNetworkState._saveRpcChoice === 'function') {
-    return PopupNetworkState._saveRpcChoice(choice);
-  }
-  const prevAddress = _autoRefreshAddress;
-  stopAutoRefresh();
-
-  if (choice.useDefault) {
-    delete rpcByNetwork[choice.networkKey];
-  } else {
-    rpcByNetwork[choice.networkKey] = choice.url;
-  }
-  await setLocal({ rpcByNetwork });
-
-  // Обновляем провайдер сразу по активной сети
-  provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
-  syncNetworkControls();
-
-  // Переподписываем автообновление на новый провайдер.
-  if (prevAddress && isWalletScreenVisible()) {
-    startAutoRefresh(prevAddress);
-  }
+  return PopupNetworkState._saveRpcChoice(choice);
 }
 
-// Показывает/скрывает поле кастомного URL при переключении чекбокса
 function toggleCustomKey() {
-  if (typeof PopupNetworkState.toggleCustomKey === 'function') {
-    return PopupNetworkState.toggleCustomKey();
-  }
-  const useDefault  = document.getElementById('use-default-key').checked;
-  const customField = document.getElementById('custom-key-field');
-  if (customField) customField.style.display = useDefault ? 'none' : 'block';
+  return PopupNetworkState.toggleCustomKey();
 }
+
+// Etherscan V2 API key (shared) — для tx-history fallback. См. network-state.js.
+async function saveEtherscanKeyFromInput() {
+  const input = document.getElementById('etherscan-api-key');
+  if (!input) return;
+  const res = await PopupNetworkState.saveEtherscanKey(input.value || '');
+  if (!res.ok) {
+    console.warn('[popup] saveEtherscanKey:', res.error);
+  }
+  // После сохранения — перезагружаем историю текущего аккаунта.
+  const accounts = await getAccountsCached();
+  const acct = accounts[activeAccountIndex];
+  if (acct?.address && typeof globalThis.loadTransactions === 'function') {
+    await globalThis.loadTransactions(acct.address);
+  }
+}
+globalThis.saveEtherscanKeyFromInput = saveEtherscanKeyFromInput;
 
 function updateNetworkBadge() {
-  if (typeof PopupNetworkState.updateNetworkBadge === 'function') {
-    return PopupNetworkState.updateNetworkBadge();
-  }
-  const badge = document.getElementById('network-badge');
-  if (!badge) return;
-
-  const networkMeta = getCurrentNetworkMeta();
-  const isMainnet = !networkMeta.isTestnet;
-  badge.classList.toggle('mainnet', isMainnet);
-  badge.classList.toggle('testnet', !isMainnet);
-  if (selectedNetwork === 'eth-mainnet') {
-    badge.textContent = 'MAINNET • Ethereum Mainnet';
-    return;
-  }
-  if (selectedNetwork === 'bsc') {
-    badge.textContent = 'MAINNET • BNB Chain';
-    return;
-  }
-  badge.textContent = 'TESTNET • Ethereum Sepolia';
+  return PopupNetworkState.updateNetworkBadge();
 }
 
 async function ensureMainnetSendGuard() {
-  if (typeof PopupNetworkState.ensureMainnetSendGuard === 'function') {
-    return PopupNetworkState.ensureMainnetSendGuard();
-  }
-  const networkMeta = getCurrentNetworkMeta();
-  if (networkMeta.isTestnet) return true;
-  const networkGuardKey = getMainnetSendGuardKey();
-
-  const { [networkGuardKey]: acceptedByNetwork, [LEGACY_MAINNET_SEND_GUARD_KEY]: acceptedLegacy } =
-    await getLocal([networkGuardKey, LEGACY_MAINNET_SEND_GUARD_KEY]);
-  if (acceptedByNetwork) return true;
-
-  if (acceptedLegacy) {
-    await setLocal({ [networkGuardKey]: true });
-    return true;
-  }
-
-  const ok = confirm(
-    `Вы отправляете транзакцию в ${networkMeta.label}.\n\n` +
-    'Это реальная сеть и комиссия оплачивается реальными средствами.\n\n' +
-    'Продолжить?'
-  );
-
-  if (ok) await setLocal({ [networkGuardKey]: true });
-  return ok;
+  return PopupNetworkState.ensureMainnetSendGuard();
 }
 
 function syncNetworkControls() {
-  if (typeof PopupNetworkState.syncNetworkControls === 'function') {
-    return PopupNetworkState.syncNetworkControls();
-  }
-  applyNetworkPickerState('setup', selectedNetwork);
-  applyNetworkPickerState('wallet', selectedNetwork);
-
-  const useDefaultCheckbox = document.getElementById('use-default-key');
-  const customField = document.getElementById('custom-key-field');
-  const customRpcInput = document.getElementById('custom-rpc-url');
-  const customForNetwork = rpcByNetwork[selectedNetwork] || '';
-  const useDefault = !customForNetwork;
-
-  if (useDefaultCheckbox) useDefaultCheckbox.checked = useDefault;
-  if (customField) customField.style.display = useDefault ? 'none' : 'block';
-  if (customRpcInput) {
-    customRpcInput.value = customForNetwork;
-    customRpcInput.placeholder = getCurrentNetworkMeta().defaultRpcUrl;
-  }
-
-  const balanceUnit = document.getElementById('wallet-balance-unit');
-  if (balanceUnit) {
-    balanceUnit.textContent = getNativeAssetSymbol();
-  }
-
-  updateNetworkBadge();
+  return PopupNetworkState.syncNetworkControls();
 }
 
 function getNetworkPickerOption(networkKey) {
-  if (typeof PopupNetworkState.getNetworkPickerOption === 'function') {
-    return PopupNetworkState.getNetworkPickerOption(networkKey);
-  }
-  return NETWORK_PICKER_OPTIONS[networkKey] || NETWORK_PICKER_OPTIONS[DEFAULT_NETWORK_KEY];
+  return PopupNetworkState.getNetworkPickerOption(networkKey);
 }
 
 function applyNetworkPickerState(context, activeNetworkKey) {
-  if (typeof PopupNetworkState.applyNetworkPickerState === 'function') {
-    return PopupNetworkState.applyNetworkPickerState(context, activeNetworkKey);
-  }
-  const picker = document.getElementById(`network-picker-${context}`);
-  if (!picker) return;
-
-  const markEl = document.getElementById(`network-picker-mark-${context}`);
-  const labelEl = document.getElementById(`network-picker-label-${context}`);
-  const option = getNetworkPickerOption(activeNetworkKey);
-  if (markEl) markEl.textContent = option.mark;
-  if (labelEl) labelEl.textContent = option.label;
-
-  picker.querySelectorAll('[data-network-option]').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.networkOption === activeNetworkKey);
-  });
+  return PopupNetworkState.applyNetworkPickerState(context, activeNetworkKey);
 }
 
 function pulseNetworkPickers() {
-  if (typeof PopupNetworkState.pulseNetworkPickers === 'function') {
-    return PopupNetworkState.pulseNetworkPickers();
-  }
-  ['setup', 'wallet'].forEach((context) => {
-    const trigger = document.querySelector(`#network-picker-${context} .network-picker-trigger`);
-    if (!trigger) return;
-    trigger.classList.remove('pulse');
-    // Force reflow so repeated selections can replay animation.
-    void trigger.offsetWidth;
-    trigger.classList.add('pulse');
-  });
+  return PopupNetworkState.pulseNetworkPickers();
 }
 
 function handleNetworkSelection(value) {
-  if (typeof PopupNetworkState.handleNetworkSelection === 'function') {
-    return PopupNetworkState.handleNetworkSelection(value);
-  }
-  if (!value) return;
-  setNetwork(value);
+  return PopupNetworkState.handleNetworkSelection(value);
 }
 
 function toggleNetworkPicker(context, event) {
-  if (typeof PopupNetworkState.toggleNetworkPicker === 'function') {
-    return PopupNetworkState.toggleNetworkPicker(context, event);
-  }
-  event?.stopPropagation();
-  const picker = document.getElementById(`network-picker-${context}`);
-  if (!picker) return;
-
-  const shouldOpen = !picker.classList.contains('open');
-  closeNetworkPickers();
-  if (shouldOpen) picker.classList.add('open');
+  return PopupNetworkState.toggleNetworkPicker(context, event);
 }
 
 function closeNetworkPickers() {
-  if (typeof PopupNetworkState.closeNetworkPickers === 'function') {
-    return PopupNetworkState.closeNetworkPickers();
-  }
-  document.querySelectorAll('.network-picker.open').forEach((picker) => {
-    picker.classList.remove('open');
-  });
+  return PopupNetworkState.closeNetworkPickers();
 }
 
 function selectNetworkOption(_context, value, event) {
-  if (typeof PopupNetworkState.selectNetworkOption === 'function') {
-    return PopupNetworkState.selectNetworkOption(_context, value, event);
-  }
-  event?.stopPropagation();
-  closeNetworkPickers();
-  handleNetworkSelection(value);
+  return PopupNetworkState.selectNetworkOption(_context, value, event);
 }
 
 function initNetworkPickerInteractions() {
-  if (typeof PopupNetworkState.initNetworkPickerInteractions === 'function') {
-    return PopupNetworkState.initNetworkPickerInteractions();
-  }
-  document.addEventListener('click', (event) => {
-    if (event.target.closest('.network-picker')) return;
-    closeNetworkPickers();
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeNetworkPickers();
-  });
+  return PopupNetworkState.initNetworkPickerInteractions();
 }
 
 async function setNetwork(networkKey) {
-  if (typeof PopupNetworkState.setNetwork === 'function') {
-    return PopupNetworkState.setNetwork(networkKey);
-  }
-  if (!NETWORKS[networkKey] || networkKey === selectedNetwork) return;
-
-  const prevAddress = _autoRefreshAddress;
-  stopAutoRefresh();
-
-  selectedNetwork = networkKey;
-  selectedChain = NETWORKS[networkKey].chain || DEFAULT_CHAIN_KEY;
-  await setLocal({ selectedNetwork });
-  await setLocal({ selectedChain });
-  provider = getOrCreatePopupProvider(getRpcUrlForNetwork(selectedNetwork));
-  syncNetworkControls();
-  pulseNetworkPickers();
-
-  if (isWalletScreenVisible()) {
-    const { accounts = [] } = await getLocal(['accounts']);
-    const address = accounts[activeAccountIndex]?.address;
-    if (address) loadWalletScreen(address);
-  } else if (prevAddress) {
-    startAutoRefresh(prevAddress);
-  }
+  const result = await PopupNetworkState.setNetwork(networkKey);
+  notifyChainChangedToDapps(networkKey);
+  return result;
 }
 
-// Отправляем сообщение в service worker и ждём ответа
+// Broadcast chainChanged всем подключённым dApp'ам через service worker.
+function notifyChainChangedToDapps(networkKey) {
+  const cfg = NETWORKS[networkKey];
+  if (!cfg) return;
+  const chainIdHex = '0x' + Number(cfg.chainId).toString(16);
+  try {
+    chrome.runtime.sendMessage({ type: 'network-changed', chainIdHex }, () => {
+      // Игнорируем lastError — broadcast идёт fire-and-forget
+      if (chrome.runtime.lastError) { /* noop */ }
+    });
+  } catch { /* ignore */ }
+}
+
+// Открыть экран Connected Sites и отрендерить список
+async function openConnectedSites() {
+  document.getElementById('acct-menu')?.classList.add('hidden');
+  showScreen('screen-connected-sites');
+  PopupDappApproval.renderConnectedSitesList('connected-sites-list');
+}
+globalThis.openConnectedSites = openConnectedSites;
+
+// Отправляем сообщение в service worker и ждём ответа.
+// Таймаут 15 сек — защита от зависания если SW умер или не отвечает.
 function sendToSW(msg) {
-  return new Promise(resolve => chrome.runtime.sendMessage(msg, resolve));
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolve({ ok: false, error: 'Service Worker не отвечает (timeout)' });
+    }, 15000);
+    chrome.runtime.sendMessage(msg, (response) => {
+      clearTimeout(timer);
+      resolve(response);
+    });
+  });
 }
 
 async function isActiveAccountUnlocked(expectedAddress) {
@@ -2085,8 +1301,14 @@ async function ensureActiveAccountInSW(expectedAddress, accountIndex) {
 async function handleSWLocked() {
   await chrome.storage.session.clear();
   const { accounts } = await getLocal(['accounts']);
-  const address = accounts[activeAccountIndex]?.address;
+  const acct = accounts[activeAccountIndex];
+  const address = acct?.address;
+  const name = acct?.name || `Account ${activeAccountIndex + 1}`;
   setAvatar('unlock-avatar', address);
-  document.getElementById('unlock-address').textContent = shortAddr(address);
+  document.getElementById('unlock-address').textContent = address ? `${name} · ${shortAddr(address)}` : '';
+  document.getElementById('unlock-password').value = '';
+  clearMessages('unlock');
+  setStatus('unlock', 'Сессия обновлена — введите пароль');
   showScreen('screen-unlock');
+  setTimeout(() => document.getElementById('unlock-password')?.focus(), 50);
 }

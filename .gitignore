@@ -25,3 +25,8 @@ node_modules/
 playwright-report/
 test-results/
 coverage/
+
+# Build artifacts
+*.crx
+*.zip
+*.pem

@@ -1,13 +1,40 @@
 (function () {
   'use strict';
 
+  // MED-10: proper tokenizer, который корректно обрабатывает запятые
+  // внутри строковых литералов. Раньше `raw.split(',')` ломал выражения
+  // типа `showError('create', 'Ошибка, не повезло')` на 3 фрагмента.
+  function splitArgsAware(raw) {
+    const tokens = [];
+    let current = '';
+    let quote = null;
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (quote) {
+        if (ch === quote && raw[i - 1] !== '\\') {
+          quote = null;
+        }
+        current += ch;
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+        current += ch;
+      } else if (ch === ',') {
+        tokens.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) tokens.push(current.trim());
+    return tokens;
+  }
+
   function bindDeclarativeHandlers() {
     const parseArgs = (argsRaw, event) => {
       const raw = String(argsRaw || '').trim();
       if (!raw) return [];
 
-      return raw.split(',').map((part) => {
-        const token = part.trim();
+      return splitArgsAware(raw).map((token) => {
         if (token === 'event') return event;
         if (token === 'true') return true;
         if (token === 'false') return false;

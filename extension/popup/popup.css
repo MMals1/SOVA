@@ -19,12 +19,12 @@
       display: flex; flex-direction: column;
     }
 
-    .screen { display: none; flex-direction: column; flex: 1; padding: 24px; overflow-y: auto; }
+    .screen { display: none; flex-direction: column; flex: 1; padding: 24px; overflow-y: auto; scrollbar-gutter: stable; }
     .screen.active { display: flex; }
     .global-avatar {
       position: absolute;
       top: 28px;
-      right: 10px;
+      right: 20px;
       width: 64px;
       height: 64px;
       border-radius: 14px;
@@ -39,7 +39,7 @@
     @media (max-height: 560px) {
       .global-avatar {
         top: 18px;
-        right: 8px;
+        right: 18px;
         width: 48px;
         height: 48px;
         border-radius: 11px;
@@ -244,6 +244,115 @@
                      accent-color: #3b82f6; cursor: pointer; flex-shrink: 0; }
     .api-key-section a { color: #3b82f6; text-decoration: none; }
     .api-key-section a:hover { text-decoration: underline; }
+    /* ── Asset picker (send screen) ─────────────────────────── */
+    .asset-picker { position: relative; }
+    .asset-picker-trigger {
+      width: 100%;
+      border: 1px solid #2a2a3a;
+      background: #1c1c28;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .asset-picker-trigger:hover {
+      border-color: #3b82f6;
+      background: #1f2332;
+    }
+    .asset-picker.open .asset-picker-trigger {
+      border-color: #3b82f6;
+      background: #1f2332;
+      box-shadow: 0 0 0 2px rgba(59,130,246,.18);
+    }
+    .asset-picker-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .asset-picker-caret {
+      width: 9px;
+      height: 9px;
+      border-right: 2px solid #94a3b8;
+      border-bottom: 2px solid #94a3b8;
+      transform: rotate(45deg);
+      margin-top: -3px;
+      transition: transform .15s;
+      flex-shrink: 0;
+    }
+    .asset-picker.open .asset-picker-caret {
+      transform: rotate(-135deg);
+      margin-top: 2px;
+    }
+    .asset-picker-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #171b26;
+      border: 1px solid #2a2f44;
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 14px 36px rgba(0,0,0,.45);
+      z-index: 90;
+      display: none;
+      opacity: 0;
+      transform: translateY(-6px) scale(.98);
+      transform-origin: top center;
+      transition: opacity .16s ease, transform .16s ease;
+    }
+    .asset-picker.open .asset-picker-menu {
+      display: block;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .asset-option {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #cbd5e1;
+      border-radius: 9px;
+      padding: 9px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+    }
+    .asset-option:hover {
+      background: #1f2434;
+      border-color: #313851;
+    }
+    .asset-option.active {
+      background: #182c4b;
+      border-color: #2563eb;
+      color: #dbeafe;
+    }
+    .asset-option-check {
+      width: 16px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 12px;
+      color: #3b82f6;
+    }
+    .asset-option-type {
+      color: #64748b;
+      font-size: 11px;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
     /* Табы кошелька */
     .wallet-tabs { display: flex; gap: 4px; margin: 14px 0 0;
                    background: #1c1c28; border-radius: 10px; padding: 4px; }
@@ -384,7 +493,13 @@
       text-transform: uppercase;
     }
     .token-symbol  { font-size: 13px; font-weight: 600; }
-    .token-addr    { font-size: 11px; color: #555; font-family: monospace; }
+    .token-addr    { font-size: 11px; color: #555; font-family: monospace; display: flex; align-items: center; gap: 6px; }
+    .token-copy-btn {
+      background: none; border: 1px solid #2e3547; color: #8fa1bd;
+      border-radius: 6px; width: auto; margin: 0; padding: 1px 5px;
+      font-size: 10px; line-height: 1.2; cursor: pointer; flex-shrink: 0;
+    }
+    .token-copy-btn:hover { color: #dbeafe; border-color: #4b5a7a; }
     .token-balance { font-size: 13px; font-weight: 600; color: #4ade80; white-space: nowrap; }
     .token-remove  {
       background: none; border: none; color: #444; cursor: pointer;
@@ -413,6 +528,15 @@
       white-space: nowrap;
     }
     .tx-refresh-indicator.active { opacity: 1; }
+    .balance-refresh-indicator {
+      font-size: 11px;
+      color: #6b7280;
+      opacity: 0;
+      transition: opacity .15s;
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+    .balance-refresh-indicator.active { opacity: 1; }
     .tx {
       display: flex;
       justify-content: space-between;
@@ -562,6 +686,12 @@
     .unlock-avatar-wrap .avatar { width: 64px; height: 64px; font-size: 18px; margin: 0 auto; }
     .hidden-custom-key { display: none; margin-top: 10px; }
     .tight-field { margin-bottom: 6px; }
+    .etherscan-key-field { margin-top: 12px; }
+    .etherscan-key-field label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+    .hint-inline { color: #666; font-weight: normal; }
+    .etherscan-key-row { display: flex; gap: 6px; align-items: stretch; }
+    .etherscan-key-row input { flex: 1; }
+    .btn-compact { padding: 6px 12px; font-size: 12px; width: auto; white-space: nowrap; margin: 0; }
     .unlock-brand-row { margin-bottom: 4px; }
     .unlock-title { font-size: 20px; }
     .unlock-address-center { text-align: center; }
@@ -572,3 +702,217 @@
     .token-address-row { display: flex; gap: 8px; align-items: flex-end; }
     .token-address-input { flex: 1; }
     .fetch-token-btn { white-space: nowrap; width: auto; margin: 0; }
+
+    /* ── dApp approval screen ──────────────────────────────────────── */
+    #screen-dapp-approval { padding: 20px 20px 16px; }
+    .dapp-approval-header {
+      border-bottom: 1px solid #22222e;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .dapp-origin-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .dapp-origin-badge {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: #1a1a24;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      border: 1px solid #2a2a36;
+    }
+    .dapp-origin-info { flex: 1; min-width: 0; }
+    .dapp-origin {
+      font-size: 13px; font-weight: 500;
+      color: #e0e0e0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dapp-subtitle {
+      font-size: 11px; color: #888;
+      margin-top: 2px;
+    }
+    .dapp-method-label {
+      font-size: 14px; color: #3b82f6;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .dapp-expiry-timer {
+      font-size: 10px; color: #666;
+      margin-top: 4px;
+    }
+    .dapp-approval-body {
+      flex: 1; overflow-y: auto;
+      padding: 4px 2px;
+      font-size: 12px;
+    }
+    .dapp-approval-actions {
+      display: flex; gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid #22222e;
+      margin-top: 8px;
+    }
+    .dapp-approval-actions button { flex: 1; margin: 0; }
+    .dapp-hint {
+      font-size: 11px; color: #888;
+      margin-bottom: 8px;
+    }
+    .dapp-kv {
+      display: flex; justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #1a1a24;
+      gap: 12px;
+      font-size: 12px;
+    }
+    .dapp-kv:last-child { border-bottom: none; }
+    .dapp-k { color: #888; flex-shrink: 0; }
+    .dapp-v {
+      color: #e0e0e0;
+      text-align: right;
+      word-break: break-all;
+      min-width: 0;
+    }
+    .dapp-kv-label {
+      color: #888; font-size: 11px;
+      margin: 10px 0 4px;
+    }
+    .dapp-message-pre {
+      background: #0e0e16; border: 1px solid #22222e;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 11px; line-height: 1.5;
+      max-height: 160px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+      color: #d0d0d0;
+    }
+    .dapp-warn-box {
+      background: #2a1f10; border: 1px solid #5a3e10;
+      color: #f5a623;
+      padding: 10px 12px; border-radius: 8px;
+      font-size: 11px; line-height: 1.4;
+      margin-top: 10px;
+    }
+    .dapp-warn-box.dapp-warn-danger {
+      background: #2a1016; border-color: #5a1028; color: #f87171;
+    }
+    .dapp-tree {
+      background: #0e0e16; border: 1px solid #22222e;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 8px 0;
+    }
+    .dapp-tree-title {
+      font-size: 11px; color: #3b82f6;
+      font-weight: 600;
+      margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .dapp-tree-nested {
+      padding-left: 10px; margin-top: 4px;
+      border-left: 2px solid #22222e;
+    }
+    .dapp-tree-key {
+      font-size: 11px; color: #888;
+      margin: 4px 0 2px;
+    }
+    .dapp-data-toggle {
+      margin-top: 10px;
+      background: #0e0e16; border: 1px solid #22222e;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .dapp-data-toggle summary {
+      cursor: pointer; color: #888; font-size: 11px;
+      user-select: none;
+    }
+    .dapp-data-pre {
+      margin-top: 6px;
+      max-height: 120px; overflow: auto;
+      font-size: 10px; line-height: 1.3;
+      color: #d0d0d0;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .dapp-accounts-list {
+      background: #0e0e16; border: 1px solid #22222e;
+      border-radius: 8px;
+      padding: 4px 0;
+      margin: 6px 0 10px;
+    }
+    .dapp-account-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #1a1a24;
+    }
+    .dapp-account-row:last-child { border-bottom: none; }
+    .dapp-account-row:hover { background: #12121e; }
+    .dapp-account-row input[type="checkbox"] {
+      width: 15px; height: 15px;
+      accent-color: #3b82f6;
+      cursor: pointer;
+    }
+    .dapp-account-name {
+      flex: 1;
+      font-size: 12px; color: #e0e0e0;
+    }
+    .dapp-account-addr {
+      font-family: ui-monospace, monospace;
+      font-size: 10px; color: #888;
+    }
+
+    /* ── Connected sites screen ──────────────────────────────────── */
+    .connected-sites-list {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-top: 12px;
+    }
+    .connected-site-row {
+      display: flex; align-items: center; gap: 10px;
+      background: #0e0e16; border: 1px solid #22222e;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .connected-site-info { flex: 1; min-width: 0; }
+    .connected-site-domain {
+      font-size: 12px; color: #e0e0e0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .connected-site-addrs {
+      font-size: 10px; color: #888;
+      margin-top: 3px;
+      font-family: ui-monospace, monospace;
+    }
+    .btn-sm { padding: 6px 10px; font-size: 11px; width: auto; margin: 0; }
+    .btn-danger.btn-sm { background: #2a1016; color: #f87171; border: 1px solid #5a1028; }
+    .btn-danger.btn-sm:hover { background: #3a1624; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* ── dApp inline unlock prompt ───────────────────────────────── */
+    .dapp-unlock-prompt {
+      margin-top: 14px;
+      padding: 12px;
+      background: #1a1a24;
+      border: 1px solid #3b82f6;
+      border-radius: 10px;
+    }
+    .dapp-unlock-field {
+      display: flex; flex-direction: column; gap: 4px;
+      margin-top: 8px;
+    }
+    .dapp-unlock-label {
+      font-size: 10px; color: #888;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .dapp-unlock-input {
+      background: #0e0e16; border: 1px solid #22222e;
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: #e0e0e0;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+    }
+    .dapp-unlock-input:focus { border-color: #3b82f6; }
+    .dapp-unlock-error {
+      color: #f87171; font-size: 11px;
+      margin-top: 6px;
+      min-height: 14px;
+    }

@@ -59,7 +59,7 @@
     bsc: {
       chain: 'bsc', chainId: 56, label: 'BNB Chain', badge: 'BNB Chain Mainnet',
       isTestnet: false,
-      defaultRpcUrl: getDefaultRpcUrl('bsc', 'https://bnb-mainnet.g.alchemy.com/v2/lrmoWsP5qrMt8_aezkh4p'),
+      defaultRpcUrl: getDefaultRpcUrl('bsc', 'https://bsc-rpc.publicnode.com'),
     },
   };
   const DEFAULT_NETWORK_KEY = (WalletNetworks && WalletNetworks.DEFAULT_NETWORK_KEY) || 'eth-sepolia';
@@ -69,14 +69,10 @@
     'eth-sepolia': { label: 'Ethereum Sepolia', mark: '◻️' },
     bsc: { label: 'BNB Chain', mark: '🟡' },
   };
-  const ALLOWED_RPC_HOSTS = [
-    'eth-mainnet.g.alchemy.com',
-    'eth-sepolia.g.alchemy.com',
-    '.g.alchemy.com',
-    '.infura.io',
-    '.quiknode.pro',
-    '.publicnode.com',
-  ];
+  // MED-13: консолидировано в shared/rpc-hosts.js (был дублирован в popup.js).
+  const ALLOWED_RPC_HOSTS = (globalThis.WolfWalletRpcHosts && Array.isArray(globalThis.WolfWalletRpcHosts.ALLOWED_RPC_HOSTS))
+    ? globalThis.WolfWalletRpcHosts.ALLOWED_RPC_HOSTS
+    : [];
   const MAINNET_SEND_GUARD_KEY_PREFIX = 'mainnetSendGuardAccepted';
   const LEGACY_MAINNET_SEND_GUARD_KEY = 'mainnetSendGuardAccepted';
 
@@ -284,7 +280,7 @@
       catch { return { ok: false, error: 'Некорректный URL' }; }
       const allowed = ALLOWED_RPC_HOSTS.some(h => urlHost === h || urlHost.endsWith(h));
       if (!allowed) {
-        return { ok: false, error: 'Провайдер не поддерживается. Используйте Alchemy, Infura или QuikNode.' };
+        return { ok: false, error: 'Провайдер не поддерживается. Используйте Alchemy, Infura, QuikNode, DRPC, Llamanodes, Ankr, Chainstack или 1RPC.' };
       }
     }
 
@@ -321,6 +317,43 @@
     if (customField) customField.style.display = useDefault ? 'none' : 'block';
   }
 
+  // ── Etherscan V2 API key (shared across networks) ────────────────────────
+  // Ключ бесплатный, 5 calls/sec. Публичный rate-limited — хранится в plain
+  // chrome.storage.local. Используется для tx-history fallback (Blockscout
+  // не поддерживает BSC, а для ETH/Sepolia — опциональный upgrade).
+
+  function _readEtherscanKeyFromUi() {
+    const input = document.getElementById('etherscan-api-key');
+    if (!input) return '';
+    return String(input.value || '').trim();
+  }
+
+  async function saveEtherscanKey(value) {
+    const trimmed = String(value || '').trim();
+    // Базовая валидация: Etherscan ключи — 34 символа alnum. Пустая строка = удалить ключ.
+    if (trimmed && !/^[A-Za-z0-9]{10,64}$/.test(trimmed)) {
+      return { ok: false, error: 'Некорректный Etherscan ключ (10-64 символа, буквы/цифры)' };
+    }
+    if (trimmed) {
+      await setLocal({ etherscanApiKey: trimmed });
+    } else {
+      await removeLocal('etherscanApiKey');
+    }
+    return { ok: true };
+  }
+
+  async function loadEtherscanKeyIntoUi() {
+    const input = document.getElementById('etherscan-api-key');
+    if (!input) return;
+    const { etherscanApiKey } = await getLocal(['etherscanApiKey']);
+    input.value = typeof etherscanApiKey === 'string' ? etherscanApiKey : '';
+  }
+
+  async function getStoredEtherscanKey() {
+    const { etherscanApiKey } = await getLocal(['etherscanApiKey']);
+    return typeof etherscanApiKey === 'string' ? etherscanApiKey.trim() : '';
+  }
+
   // ── Mainnet send guard ────────────────────────────────────────────────────
 
   async function ensureMainnetSendGuard() {
@@ -354,5 +387,7 @@
     syncNetworkControls, updateNetworkBadge, handleNetworkSelection, toggleNetworkPicker,
     closeNetworkPickers, selectNetworkOption, initNetworkPickerInteractions, setNetwork,
     pulseNetworkPickers, ensureMainnetSendGuard, _readRpcChoice, _saveRpcChoice, toggleCustomKey,
+    // Etherscan V2 API key management
+    _readEtherscanKeyFromUi, saveEtherscanKey, loadEtherscanKeyIntoUi, getStoredEtherscanKey,
   };
 })();
