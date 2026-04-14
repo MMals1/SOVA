@@ -1,0 +1,210 @@
+/* ═══════════════════════════════════════════════════════════════════
+   SOVA BANK v5 — THEME VARIABLES + BASE STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Global theme transition ─────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.1s ease;
+}
+.tab-panel,
+.toast,
+canvas {
+  transition: none !important;
+}
+
+[data-theme='dark'] {
+  /* ── Backgrounds ─────────────────────────────────────────────── */
+  --bg: #080a0d;
+  --bg-2: #0c0e12;
+
+  /* ── Surfaces ────────────────────────────────────────────────── */
+  --s0: #0d0f13;
+  --s1: #111418;
+  --s2: #161a20;
+  --s3: #1b2028;
+  --s-hover: #1b2028;
+
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --b0: #1e2128;
+  --b1: #262b34;
+  --b2: #303842;
+  --b-accent: rgba(59, 130, 246, 0.45);
+
+  /* ── Text ────────────────────────────────────────────────────── */
+  --t0: #e8eaf0;
+  --t1: #a8b3c4;
+  --t2: #60707f;
+  --t3: #333e4a;
+  --t-accent: #93c5fd;
+
+  /* ── Accent ──────────────────────────────────────────────────── */
+  --a: #3b82f6;
+  --a-h: #60a5fa;
+  --a-d: #1d4ed8;
+  --a-glow: rgba(59, 130, 246, 0.18);
+  --a-sub: rgba(59, 130, 246, 0.09);
+  --a-sub2: rgba(59, 130, 246, 0.04);
+  --c: #60a5fa;
+  --c-sub: rgba(59, 130, 246, 0.07);
+  --v: #3b82f6;
+  --v-sub: rgba(59, 130, 246, 0.05);
+
+  /* ── Status ──────────────────────────────────────────────────── */
+  --ok: #16a34a;
+  --ok-bg: rgba(22, 163, 74, 0.08);
+  --ok-b: rgba(22, 163, 74, 0.22);
+  --warn: #d97706;
+  --warn-bg: rgba(217, 119, 6, 0.08);
+  --warn-b: rgba(217, 119, 6, 0.22);
+  --err: #dc2626;
+  --err-bg: rgba(220, 38, 38, 0.08);
+  --err-b: rgba(220, 38, 38, 0.22);
+}
+
+[data-theme='light'] {
+  /* ── Backgrounds ─────────────────────────────────────────────── */
+  --bg: #f0f2f5;
+  --bg-2: #e8eaed;
+
+  /* ── Surfaces ────────────────────────────────────────────────── */
+  --s0: #ffffff;
+  --s1: #f5f7fa;
+  --s2: #ebeef3;
+  --s3: #e0e4eb;
+  --s-hover: #ebeef3;
+
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --b0: #d8dce6;
+  --b1: #c4cad6;
+  --b2: #adb5c4;
+  --b-accent: rgba(59, 130, 246, 0.5);
+
+  /* ── Text ────────────────────────────────────────────────────── */
+  --t0: #0d1117;
+  --t1: #2d3748;
+  --t2: #5a6a7e;
+  --t3: #8fa0b2;
+  --t-accent: #1d4ed8;
+
+  /* ── Accent ──────────────────────────────────────────────────── */
+  --a: #2563eb;
+  --a-h: #3b82f6;
+  --a-d: #1e40af;
+  --a-glow: rgba(37, 99, 235, 0.25);
+  --a-sub: rgba(37, 99, 235, 0.08);
+  --a-sub2: rgba(37, 99, 235, 0.04);
+  --c: #3b82f6;
+  --c-sub: rgba(59, 130, 246, 0.07);
+  --v: #2563eb;
+  --v-sub: rgba(37, 99, 235, 0.05);
+
+  /* ── Status ──────────────────────────────────────────────────── */
+  --ok: #16a34a;
+  --ok-bg: rgba(22, 163, 74, 0.08);
+  --ok-b: rgba(22, 163, 74, 0.22);
+  --warn: #d97706;
+  --warn-bg: rgba(217, 119, 6, 0.08);
+  --warn-b: rgba(217, 119, 6, 0.22);
+  --err: #dc2626;
+  --err-bg: rgba(220, 38, 38, 0.08);
+  --err-b: rgba(220, 38, 38, 0.22);
+}
+
+:root {
+  /* ── Radii ───────────────────────────────────────────────────── */
+  --r1: 4px;
+  --r2: 7px;
+  --r3: 10px;
+  --r4: 14px;
+  --r5: 18px;
+  --rF: 9999px;
+
+  /* ── Fonts ───────────────────────────────────────────────────── */
+  --ff: 'Space Grotesk', system-ui, sans-serif;
+  --fm: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* ── Transitions ─────────────────────────────────────────────── */
+  --tf: 110ms cubic-bezier(0.16, 1, 0.3, 1);
+  --tn: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --ts: 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--ff);
+  background: var(--bg);
+  color: var(--t0);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Focus ring — same single accent */
+:focus-visible {
+  outline: 2px solid var(--a);
+  outline-offset: 2px;
+  border-radius: var(--r1);
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--b1) transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--b1);
+  border-radius: 2px;
+}
+
+/* ── Light theme: grid background override ───────────────────── */
+[data-theme='light'] .bg-layer::before {
+  background-image:
+    linear-gradient(var(--b0) 1px, transparent 1px),
+    linear-gradient(90deg, var(--b0) 1px, transparent 1px);
+  opacity: 0.35;
+}
+
+/* ── Light theme: header background ─────────────────────────── */
+[data-theme='light'] header {
+  background: var(--bg);
+}
+
+/* ── Theme button ─────────────────────────────────────────────── */
+.theme-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r2);
+  border: 1px solid var(--b1);
+  background: var(--s1);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all var(--tf);
+  flex-shrink: 0;
+}
+.theme-btn:hover {
+  border-color: var(--b-accent);
+  color: var(--a);
+  background: var(--s2);
+}

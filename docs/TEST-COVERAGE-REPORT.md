@@ -34,42 +34,43 @@
 
 ### Статистика
 
-| Категория | До | После | Δ |
-|---|:---:|:---:|:---:|
-| Unit test files | 10 | **12** | +2 |
-| Integration test files | 5 | 5 | — |
-| E2E spec files | 15 | 15 | — |
-| **Total test files** | **30** | **32** | **+2** |
-| Unit tests (individual) | 186 | **264** | **+78** |
-| Integration tests | 83 | 83 | — |
-| E2E tests (Playwright) | 84 | 84 | — |
+| Категория                      |   До    |  После  |    Δ    |
+| ------------------------------ | :-----: | :-----: | :-----: |
+| Unit test files                |   10    | **12**  |   +2    |
+| Integration test files         |    5    |    5    |    —    |
+| E2E spec files                 |   15    |   15    |    —    |
+| **Total test files**           | **30**  | **32**  | **+2**  |
+| Unit tests (individual)        |   186   | **264** | **+78** |
+| Integration tests              |   83    |   83    |    —    |
+| E2E tests (Playwright)         |   84    |   84    |    —    |
 | **Unit + Integration running** | **251** | **331** | **+80** |
 
 ### Инвентаризация unit + integration файлов
 
-| Файл | Тесты | Что покрывает |
-|---|:---:|---|
-| `tests/unit/popup-helpers.test.js` | 4 | formatAmount, shortAddr, explorer URLs, getTxScopeKey |
-| `tests/unit/network-state.test.js` | 2 | Базовая network detection |
-| `tests/unit/tx-pagination.test.js` | 4 | Pagination math |
-| `tests/unit/token-scope.test.js` | 4 | Token scoping by network |
-| `tests/unit/service-worker-network.test.js` | 2 | RPC URL fallback |
-| **`tests/unit/service-worker-unlock.test.js`** | **19** ⬆ | **Persistent lockout (P1-3) + SW restart persistence** |
-| `tests/unit/input-validation.test.js` | 30 | Addresses, amounts, mnemonics, RPC URLs |
-| `tests/unit/popup-state.test.js` | 35 | Shared state sync |
-| `tests/unit/wallet-core-edge-cases.test.js` | 44 | Edge cases в wallet-core helpers |
-| **`tests/unit/dapp-handlers.test.js`** | **49** ⬆ | **EIP-1193 dispatcher + chainId block (P2-4) + RPC whitelist (P2-1) + persistence (CRIT-5)** |
-| 🆕 **`tests/unit/sender-validation.test.js`** | **31** | **POPUP_ONLY/CONTENT_SCRIPT whitelist + cross-context spoofing** |
-| 🆕 **`tests/unit/dapp-approval-xss.test.js`** | **24** | **buildKvRow/buildWarnBox/buildTreeTitle + structural guard** |
-| `tests/integration/popup-sw-session.test.js` | 3 | Popup ↔ SW session sync |
-| `tests/integration/account-switch.test.js` | 3 | Account switching basics |
-| `tests/integration/account-isolation.test.js` | 24 | Data isolation across accounts |
-| `tests/integration/rpc-fallback.test.js` | 26 | RPC config fallback |
-| `tests/integration/unlock-session-lifecycle.test.js` | 27 | Unlock/lock/auto-lock flows |
+| Файл                                                 |  Тесты   | Что покрывает                                                                                |
+| ---------------------------------------------------- | :------: | -------------------------------------------------------------------------------------------- |
+| `tests/unit/popup-helpers.test.js`                   |    4     | formatAmount, shortAddr, explorer URLs, getTxScopeKey                                        |
+| `tests/unit/network-state.test.js`                   |    2     | Базовая network detection                                                                    |
+| `tests/unit/tx-pagination.test.js`                   |    4     | Pagination math                                                                              |
+| `tests/unit/token-scope.test.js`                     |    4     | Token scoping by network                                                                     |
+| `tests/unit/service-worker-network.test.js`          |    2     | RPC URL fallback                                                                             |
+| **`tests/unit/service-worker-unlock.test.js`**       | **19** ⬆ | **Persistent lockout (P1-3) + SW restart persistence**                                       |
+| `tests/unit/input-validation.test.js`                |    30    | Addresses, amounts, mnemonics, RPC URLs                                                      |
+| `tests/unit/popup-state.test.js`                     |    35    | Shared state sync                                                                            |
+| `tests/unit/wallet-core-edge-cases.test.js`          |    44    | Edge cases в wallet-core helpers                                                             |
+| **`tests/unit/dapp-handlers.test.js`**               | **49** ⬆ | **EIP-1193 dispatcher + chainId block (P2-4) + RPC whitelist (P2-1) + persistence (CRIT-5)** |
+| 🆕 **`tests/unit/sender-validation.test.js`**        |  **31**  | **POPUP_ONLY/CONTENT_SCRIPT whitelist + cross-context spoofing**                             |
+| 🆕 **`tests/unit/dapp-approval-xss.test.js`**        |  **24**  | **buildKvRow/buildWarnBox/buildTreeTitle + structural guard**                                |
+| `tests/integration/popup-sw-session.test.js`         |    3     | Popup ↔ SW session sync                                                                      |
+| `tests/integration/account-switch.test.js`           |    3     | Account switching basics                                                                     |
+| `tests/integration/account-isolation.test.js`        |    24    | Data isolation across accounts                                                               |
+| `tests/integration/rpc-fallback.test.js`             |    26    | RPC config fallback                                                                          |
+| `tests/integration/unlock-session-lifecycle.test.js` |    27    | Unlock/lock/auto-lock flows                                                                  |
 
 ### E2E тесты (Playwright, запускаются отдельно)
 
 15 spec файлов, ~84 тестов:
+
 - `smoke`, `unlock`, `unlock-lockout` (19 тестов), `send-eth`, `send-erc20`, `token-flow`, `network-scope`, `network-rpc-guard`, `account-onboarding`, `resilience`, `error-resilience`, `comprehensive-flows`, `history-pagination`, `session-ui-security`, `perf-baseline`.
 
 ---
@@ -151,16 +152,16 @@ Add them to extension/background/service-worker.js POPUP_ONLY_MESSAGE_TYPES.
 
 ## 4. Оставшиеся пробелы (не закрытые в этом audit'е)
 
-| Severity | Пробел | Рекомендация |
-|---|---|---|
-| **P1** | `inpage/provider.js` (262 строки) — 0 тестов | Написать unit-тест через jsdom: `SovaProvider.request()` валидация, response matching by id, event emitter, timeout cleanup |
-| **P1** | `content/content-script.js` (111 строк) — 0 тестов | Написать unit-тест: ALLOWED_EVENTS whitelist, sender validation, postMessage origin check |
-| **P1** | **E2E dApp approval flow** — 0 тестов | Расширить `popup-fixture.js` чтобы мокать `dapp-request`/`dapp-approval-response`; написать `dapp-connectivity.spec.js` |
-| **P2** | Inline unlock в approval popup (`needsUnlock`) | Integration test: approval с `needsUnlock:true` → password field → unlock RPC → approval response |
-| **P2** | `broadcastAccountsChanged` с active wallet filter | Integration test: SW unlock → broadcast в connectedOrigins с filter |
-| **P2** | `switchAccount` UX после Phase 2 — multi-mnemonic flow | E2E: Account 1 unlocked → switch to Account 2 с другим паролем → unlock screen показывает правильное имя |
-| **P3** | `dapp-demo.html` applyLang() regression (снапшот) | E2E visual snapshot test |
-| **P3** | Mutation testing для крипто-модулей | Stryker Mutator на `service-worker.js`, `wallet-core.js`, `network-state.js` |
+| Severity | Пробел                                                 | Рекомендация                                                                                                                |
+| -------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| **P1**   | `inpage/provider.js` (262 строки) — 0 тестов           | Написать unit-тест через jsdom: `SovaProvider.request()` валидация, response matching by id, event emitter, timeout cleanup |
+| **P1**   | `content/content-script.js` (111 строк) — 0 тестов     | Написать unit-тест: ALLOWED_EVENTS whitelist, sender validation, postMessage origin check                                   |
+| **P1**   | **E2E dApp approval flow** — 0 тестов                  | Расширить `popup-fixture.js` чтобы мокать `dapp-request`/`dapp-approval-response`; написать `dapp-connectivity.spec.js`     |
+| **P2**   | Inline unlock в approval popup (`needsUnlock`)         | Integration test: approval с `needsUnlock:true` → password field → unlock RPC → approval response                           |
+| **P2**   | `broadcastAccountsChanged` с active wallet filter      | Integration test: SW unlock → broadcast в connectedOrigins с filter                                                         |
+| **P2**   | `switchAccount` UX после Phase 2 — multi-mnemonic flow | E2E: Account 1 unlocked → switch to Account 2 с другим паролем → unlock screen показывает правильное имя                    |
+| **P3**   | `dapp-demo.html` applyLang() regression (снапшот)      | E2E visual snapshot test                                                                                                    |
+| **P3**   | Mutation testing для крипто-модулей                    | Stryker Mutator на `service-worker.js`, `wallet-core.js`, `network-state.js`                                                |
 
 ---
 
@@ -180,6 +181,7 @@ Add them to extension/background/service-worker.js POPUP_ONLY_MESSAGE_TYPES.
 - Делать это на уровне unit теста (быстро, не требует Playwright)
 
 Этот паттерн можно применить и к другим потенциальным рассинхронизациям:
+
 - URL'ы RPC в popup vs host_permissions в manifest
 - Message types в popup vs handler case'ы в SW
 - Screen IDs в HTML vs showScreen calls
@@ -249,12 +251,14 @@ Duration    ~2.1s
 ### Phase 4 (next sprint)
 
 Добавить `tests/unit/inpage-provider.test.js`:
+
 - Через jsdom создать фейковый `window` и проверить `SovaProvider.request()` валидацию
 - Тесты на timeout cleanup (TTL)
 - Тесты на event emitter max listeners
 - EIP-6963 announce event
 
 Добавить `tests/unit/content-script.test.js`:
+
 - Mock `chrome.runtime` и `window`
 - Тесты на sender id check + tab null check
 - ALLOWED_EVENTS whitelist enforcement
@@ -262,11 +266,13 @@ Duration    ~2.1s
 ### Phase 5 (следующий major)
 
 Расширить `popup-fixture.js` чтобы поддерживать полный dApp-approval цикл:
+
 - Mock `dapp-request` → `dapp-get-pending` → `dapp-approval-response`
 - Mock inline unlock flow
 - Mock broadcast events
 
 И написать e2e тесты:
+
 - `tests/e2e/dapp-connect.spec.js`
 - `tests/e2e/dapp-sign.spec.js`
 - `tests/e2e/dapp-send.spec.js`

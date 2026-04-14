@@ -6,48 +6,48 @@
 
 ## Легенда приоритетов
 
-| Приоритет | Значение | Когда делать |
-|---|---|---|
-| **P0** | Блокер / безопасность | Немедленно, до следующего релиза |
-| **P1** | Критично для продукта | В ближайший цикл |
-| **P2** | Важно, но не срочно | В ближайший квартал |
-| **P3** | Nice to have | Когда появится ресурс |
+| Приоритет | Значение              | Когда делать                     |
+| --------- | --------------------- | -------------------------------- |
+| **P0**    | Блокер / безопасность | Немедленно, до следующего релиза |
+| **P1**    | Критично для продукта | В ближайший цикл                 |
+| **P2**    | Важно, но не срочно   | В ближайший квартал              |
+| **P3**    | Nice to have          | Когда появится ресурс            |
 
 ---
 
 ## 1. Сводка по приоритетам
 
-| # | Рекомендация | Приоритет | Категория |
-|---|---|---|---|
-| 2.1 | Реализовать 5 hardening пунктов из incident-report | **P0** | Безопасность |
-| 2.2 | Убрать hardcoded Alchemy API key из `network-config.js` | **P0** | Безопасность |
-| 2.3 | Расширенная валидация перед send (simulate + code check) | **P1** | Безопасность |
-| 2.4 | Поддержка hardware wallet (Ledger/Trezor) | **P1** | Безопасность |
-| 2.5 | Опциональный passphrase к мнемонике (BIP39) | **P2** | Безопасность |
-| 3.1 | Продолжить декомпозицию `popup.js` (2165 → <500) | **P1** | Архитектура |
-| 3.2 | Удалить delegation fallback chains | **P1** | Архитектура |
-| 3.3 | Явные ES-модули + bundler (Vite / esbuild) | **P2** | Архитектура |
-| 3.4 | Внутренний event bus вместо глобальных функций | **P2** | Архитектура |
-| 3.5 | Миграция на TypeScript (минимум для shared/) | **P2** | Архитектура |
-| 3.6 | Перенести inline `<style>` из `popup.html` | **P3** | Архитектура |
-| 4.1 | WalletConnect v2 (mobile bridge) | **P1** | Функциональность |
-| 4.2 | Fallback для tx-history вне Alchemy (Etherscan API / logs) | **P1** | Функциональность |
-| 4.3 | EIP-1559 fee market UI с ручным выбором | **P2** | Функциональность |
-| 4.4 | NFT (ERC-721/1155) — просмотр и передача | **P2** | Функциональность |
-| 4.5 | In-app toast/badge уведомления о mined | **P3** | UX |
-| 4.6 | Реэкспорт мнемоники с паролем + таймер | **P3** | UX |
-| 5.1 | Закрыть 15+ пробелов из `tests/test-plan-2.md` | **P1** | Тесты |
-| 5.2 | CI/CD (GitHub Actions) с gate на перф-метрики | **P1** | Тесты |
-| 5.3 | Consolidate тестовую документацию (единый test-status.md) | **P2** | Тесты |
-| 5.4 | Mutation testing для крипто-чувствительных модулей | **P3** | Тесты |
-| 6.1 | Secrets management (не в репо) | **P1** | Ops |
-| 6.2 | Подпись расширения + план публикации в Chrome Web Store | **P1** | Ops |
-| 6.3 | Семантическое версионирование + релиз-ноуты | **P2** | Ops |
-| 6.4 | Reproducible build (детерминированный zip) | **P3** | Ops |
-| 7.1 | Упразднить противоречия в тестовой документации | **P1** | Документация |
-| 7.2 | Архитектурные диаграммы в `DOCUMENTATION.md` | **P2** | Документация |
-| 7.3 | Закрепить язык (RU основной, EN зеркало) | **P2** | Документация |
-| 7.4 | API-справочник IPC-сообщений SW | **P3** | Документация |
+| #   | Рекомендация                                               | Приоритет | Категория        |
+| --- | ---------------------------------------------------------- | --------- | ---------------- |
+| 2.1 | Реализовать 5 hardening пунктов из incident-report         | **P0**    | Безопасность     |
+| 2.2 | Убрать hardcoded Alchemy API key из `network-config.js`    | **P0**    | Безопасность     |
+| 2.3 | Расширенная валидация перед send (simulate + code check)   | **P1**    | Безопасность     |
+| 2.4 | Поддержка hardware wallet (Ledger/Trezor)                  | **P1**    | Безопасность     |
+| 2.5 | Опциональный passphrase к мнемонике (BIP39)                | **P2**    | Безопасность     |
+| 3.1 | Продолжить декомпозицию `popup.js` (2165 → <500)           | **P1**    | Архитектура      |
+| 3.2 | Удалить delegation fallback chains                         | **P1**    | Архитектура      |
+| 3.3 | Явные ES-модули + bundler (Vite / esbuild)                 | **P2**    | Архитектура      |
+| 3.4 | Внутренний event bus вместо глобальных функций             | **P2**    | Архитектура      |
+| 3.5 | Миграция на TypeScript (минимум для shared/)               | **P2**    | Архитектура      |
+| 3.6 | Перенести inline `<style>` из `popup.html`                 | **P3**    | Архитектура      |
+| 4.1 | WalletConnect v2 (mobile bridge)                           | **P1**    | Функциональность |
+| 4.2 | Fallback для tx-history вне Alchemy (Etherscan API / logs) | **P1**    | Функциональность |
+| 4.3 | EIP-1559 fee market UI с ручным выбором                    | **P2**    | Функциональность |
+| 4.4 | NFT (ERC-721/1155) — просмотр и передача                   | **P2**    | Функциональность |
+| 4.5 | In-app toast/badge уведомления о mined                     | **P3**    | UX               |
+| 4.6 | Реэкспорт мнемоники с паролем + таймер                     | **P3**    | UX               |
+| 5.1 | Закрыть 15+ пробелов из `tests/test-plan-2.md`             | **P1**    | Тесты            |
+| 5.2 | CI/CD (GitHub Actions) с gate на перф-метрики              | **P1**    | Тесты            |
+| 5.3 | Consolidate тестовую документацию (единый test-status.md)  | **P2**    | Тесты            |
+| 5.4 | Mutation testing для крипто-чувствительных модулей         | **P3**    | Тесты            |
+| 6.1 | Secrets management (не в репо)                             | **P1**    | Ops              |
+| 6.2 | Подпись расширения + план публикации в Chrome Web Store    | **P1**    | Ops              |
+| 6.3 | Семантическое версионирование + релиз-ноуты                | **P2**    | Ops              |
+| 6.4 | Reproducible build (детерминированный zip)                 | **P3**    | Ops              |
+| 7.1 | Упразднить противоречия в тестовой документации            | **P1**    | Документация     |
+| 7.2 | Архитектурные диаграммы в `DOCUMENTATION.md`               | **P2**    | Документация     |
+| 7.3 | Закрепить язык (RU основной, EN зеркало)                   | **P2**    | Документация     |
+| 7.4 | API-справочник IPC-сообщений SW                            | **P3**    | Документация     |
 
 ---
 
@@ -64,6 +64,7 @@
 **Почему:** снижает «blast radius» сценария «злоумышленник получил физический/удалённый доступ к уже разблокированному popup'у». Сейчас после unlock в течение 5 минут можно отправить любую сумму.
 
 **Как:**
+
 - В `send-flow.js` → `confirmSend()` добавить проверку `isMainnet(selectedNetwork)`.
 - Показать inline pin/password prompt (без возврата на unlock-screen — это UX-регрессия).
 - SW получает новый тип `verify-password`: расшифровывает текущий keystore с переданным паролем, возвращает `{ ok: true }` или `{ ok: false }`. Успех → сразу `send-*`.
@@ -78,6 +79,7 @@
 **Почему:** защита от address-poisoning (когда в истории появляется tx с 0-value с адреса, похожего на реальный).
 
 **Как:**
+
 - Новая запись в storage: `knownRecipientsByAddress[address] = Set<recipient>`.
 - В `confirm-tx-screen` показать баннер если получатель не в Set.
 - После успешной отправки — добавить получателя в Set.
@@ -92,6 +94,7 @@
 **Почему:** классическая мера anti-drain. Сейчас нет никаких ограничений по сумме.
 
 **Как:**
+
 - Настройка в `add-account-screen` или новом `settings-screen`: `dailyCapEth`, `dailyCapBnb`.
 - SW при каждом send суммирует значения за последние 24 часа (из `txHistoryCache` + runtime-буфера).
 - Превышение → ошибка `daily-cap-exceeded` с подробным сообщением.
@@ -105,6 +108,7 @@
 **Почему:** при следующем инциденте у пользователя будет локальная форензика «что происходило на моём расширении перед кражей».
 
 **Как:**
+
 - Новый модуль `popup/modules/audit-log.js` + соответствующие вызовы из SW.
 - Кольцевой буфер на 1000 записей, формат `{ timestamp, action, networkKey, amount?, recipient?(maskable) }`.
 - Экспорт в JSON из `settings-screen`.
@@ -119,6 +123,7 @@
 **Почему:** управление ожиданиями пользователя + психологический барьер перед mainnet.
 
 **Как:**
+
 - Новый ключ `mainnetDeviceWarningAccepted`, показывается один раз.
 - Текст: чеклист из 5 пунктов (чистый профиль браузера, нет неизвестных расширений, пароль не в clipboard manager'е, seed не в облаке, рекомендуется hardware wallet).
 - Кнопка «Понял, продолжить» — после клика флаг сохраняется.
@@ -130,14 +135,17 @@
 ### 2.2 Hardcoded Alchemy API key (P0)
 
 **Проблема.** `extension/network-config.js` содержит Alchemy API key в открытом виде:
+
 ```
 https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 ```
+
 (Ключ также упомянут в `extension_changes_since_backup.md:34`.)
 
 При публикации в Chrome Web Store zip-файл распакуется любому пользователю. Ключ окажется у всех, кто установит расширение или скачает zip с лендинга.
 
 **Последствия:**
+
 - Превышение rate limits Alchemy (общий pool на всех).
 - Потеря контроля над доменом применения ключа (если забыт allowlist в Alchemy dashboard).
 - Риск биллинга, если Alchemy account коммерческий.
@@ -163,6 +171,7 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 ### 2.3 Расширенная pre-send валидация (P1)
 
 **Проблема.** Сейчас `send-eth` проверяет только адрес и сумму. Нет проверок типа:
+
 - получатель — это контракт? (тогда простая `transfer` может зависнуть или переслать всё)
 - контракт имеет известный signature (например, WETH/USDT/USDC)?
 - баланс достаточный с учётом газа?
@@ -170,6 +179,7 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 - chainId у provider'а совпадает с ожидаемым?
 
 **Как сделать:**
+
 - Ввести функцию `validateTxPreflight(txRequest, provider)` в `send-flow.js`:
   1. `await provider.getCode(to)` — если не `"0x"`, это контракт → warning или подсказка использовать token send flow.
   2. `await provider.getBalance(from)` — сравнить с `value + gasEstimate * gasPrice`.
@@ -186,6 +196,7 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 **Проблема.** Для mainnet использование чисто software-кошелька — слабая безопасность (инцидент 2026-03-29 это показал). Ledger/Trezor исключают класс атак «украли keystore / seed».
 
 **Как:**
+
 - Отдельный аккаунт-тип `{ type: 'hardware', device: 'ledger' | 'trezor', derivationPath, address }`, без keystore'а.
 - Для подписи SW вместо `wallet.sendTransaction` использует `@ledgerhq/hw-transport-webhid` + `@ledgerhq/hw-app-eth` (для Trezor — `@trezor/connect-web`).
 - **Важно:** WebHID доступен только в popup контексте, не в service worker (как в MV3). Значит подпись tx должна происходить в popup, а не в SW — это ломает текущий паттерн «ключ только в SW». Нужна отдельная ветка в `send-flow.js`:
@@ -199,11 +210,13 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 ### 2.5 Опциональный BIP39 passphrase (P2)
 
 **Проблема.** Сейчас мнемоника — единственный фактор восстановления. Это стандарт, но BIP39 позволяет добавить passphrase (25-е слово), который:
+
 - хранится только в голове пользователя,
 - даёт **другой** набор адресов из той же seed,
 - эффективно добавляет второй фактор.
 
 **Как:**
+
 - В `setup-screen` при создании кошелька — опциональное поле «Passphrase (необязательно)» + предупреждение «потеря passphrase = потеря доступа, восстановление невозможно».
 - `ethers.HDNodeWallet.fromPhrase(mnemonic, passphrase, path)` уже поддерживает это.
 - В `unlock-screen` passphrase НЕ вводится (мы используем хранимый keystore).
@@ -216,6 +229,7 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 ### 3.1 Продолжить декомпозицию `popup.js` (P1)
 
 **Текущее состояние:** 2165 строк в одном файле, несмотря на Этап 1 оптимизации. Модули `network-state.js` / `tx-history.js` / `token-state.js` / `send-flow.js` существуют, но `popup.js` всё ещё держит:
+
 - bootstrap + migration
 - `_accountsCache` + `_providerCache`
 - Legacy fallback всех модулей (delegation pattern)
@@ -228,16 +242,16 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 
 **Целевая декомпозиция:**
 
-| Новый модуль | Что выделить | Строк (приблизительно) |
-|---|---|---:|
-| `popup/modules/bootstrap.js` | DOMContentLoaded, миграции, первый рендер | 200 |
-| `popup/modules/session.js` | session-check, unlock routing, SW ping | 150 |
-| `popup/modules/accounts.js` | `getAccountsCached`, `addSubAccount`, activate, menu | 300 |
-| `popup/modules/refresh-loop.js` | balance polling, throttle, visibility API | 150 |
-| `popup/modules/quiz-flow.js` | mnemonic verification quiz | 100 |
-| `popup/modules/import-flow.js` | Импорт по mnemonic/privateKey + валидация | 150 |
-| `popup/modules/address-book.js` | Сохранение известных получателей, адресация | 150 |
-| `popup/popup.js` (остаток) | Главный wiring: события DOMContentLoaded → bootstrap | **< 400** |
+| Новый модуль                    | Что выделить                                         | Строк (приблизительно) |
+| ------------------------------- | ---------------------------------------------------- | ---------------------: |
+| `popup/modules/bootstrap.js`    | DOMContentLoaded, миграции, первый рендер            |                    200 |
+| `popup/modules/session.js`      | session-check, unlock routing, SW ping               |                    150 |
+| `popup/modules/accounts.js`     | `getAccountsCached`, `addSubAccount`, activate, menu |                    300 |
+| `popup/modules/refresh-loop.js` | balance polling, throttle, visibility API            |                    150 |
+| `popup/modules/quiz-flow.js`    | mnemonic verification quiz                           |                    100 |
+| `popup/modules/import-flow.js`  | Импорт по mnemonic/privateKey + валидация            |                    150 |
+| `popup/modules/address-book.js` | Сохранение известных получателей, адресация          |                    150 |
+| `popup/popup.js` (остаток)      | Главный wiring: события DOMContentLoaded → bootstrap |              **< 400** |
 
 **Критерий готовности:** `popup.js` < 500 строк; модули не импортируют друг друга кроме как через `WolfPopup*` глобали или общий `PopupState`.
 
@@ -248,6 +262,7 @@ https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY
 ### 3.2 Удалить delegation fallback chains (P1)
 
 **Проблема.** Паттерн в `popup.js`:
+
 ```js
 const mod = globalThis.WolfPopupNetworkState;
 if (mod && typeof mod.setNetwork === 'function') {
@@ -256,7 +271,9 @@ if (mod && typeof mod.setNetwork === 'function') {
   // 40 строк fallback-реализации
 }
 ```
+
 даёт:
+
 - удвоение кодовой базы (одна и та же логика в двух местах);
 - риск drift'а (fallback чинится, модуль не чинится или наоборот);
 - усложнение дебага — «какой путь сейчас исполняется?».
@@ -275,12 +292,14 @@ if (mod && typeof mod.setNetwork === 'function') {
 ### 3.3 Явные ES-модули + bundler (P2)
 
 **Проблема.** Сейчас инициализация через IIFE + присвоение в `globalThis` — это legacy-паттерн ради CSP `script-src 'self'` без `"type": "module"`. Минусы:
+
 - Нет tree-shaking.
 - Порядок скриптов в HTML — жёсткая зависимость; неправильный порядок → runtime null errors.
 - Нет явных импортов → IDE не подсказывает.
 - Глобальные имена → риск коллизий.
 
 **Предложение.** Собрать `popup.js` через bundler (Vite / esbuild / rollup) в один `popup.bundle.js`:
+
 - Исходники становятся ES-модулями (`import`/`export`).
 - Bundler выдаёт один минифицированный файл.
 - CSP совместимость: `script-src 'self'` работает, т.к. bundle — локальный файл.
@@ -299,6 +318,7 @@ if (mod && typeof mod.setNetwork === 'function') {
 **Проблема.** Модули общаются через глобальные функции (`window.sendTransaction`, `window.loadWalletScreen`). Это создаёт скрытые зависимости.
 
 **Решение.** Минимальный pub/sub в `popup/modules/event-bus.js`:
+
 ```js
 const WolfEventBus = {
   listeners: new Map(),
@@ -319,6 +339,7 @@ const WolfEventBus = {
 **Проблема.** Сеть — строковый ключ, который используется в 20+ местах. Ошибка в строке (`eth-mainnte` вместо `eth-mainnet`) → runtime error, который ловится только тестами. Типы контрактов (`Account`, `TxRequest`, `NetworkConfig`) неявные.
 
 **Решение.** Миграция в TypeScript без полного переписывания:
+
 1. Начать с `shared/`: `wallet-core.ts`, `networks.ts` с strict types.
 2. Далее `popup/modules/*.ts`.
 3. `service-worker.ts` в последнюю очередь.
@@ -344,6 +365,7 @@ const WolfEventBus = {
 **Почему:** даже если dApp-коннект (см. `DAPP-CONNECT-PLAN.md`) сделан через `window.ethereum`, WalletConnect покрывает случай «пользователь на десктопе, dApp — мобильное web-приложение или десктопное приложение без расширения».
 
 **Как:** `@walletconnect/sign-client` + `@walletconnect/utils`. Требуется:
+
 - UI экран «Подключения WalletConnect» со списком активных сессий.
 - Обработка session_request → popup approval.
 - Namespaces для eip155 (1, 56, 11155111).
@@ -368,6 +390,7 @@ const WolfEventBus = {
 3. **Гибрид (рекомендуется).** Если `rpcUrl` — Alchemy → `alchemy_getAssetTransfers`. Если есть Etherscan API key → Etherscan. Иначе → last-resort `eth_getLogs` на короткий диапазон блоков + предупреждение «Полная история недоступна, настройте Alchemy или Etherscan API key».
 
 **Изменения:**
+
 - `popup/modules/tx-history.js` — добавить стратегию `fetchHistory(address, networkKey, rpcUrl)` с ветвлением.
 - Новый модуль `popup/modules/tx-history-sources.js` для источников.
 - Настройки RPC расширить до `{ rpcUrl, historySource: 'auto' | 'alchemy' | 'etherscan' | 'logs', historyApiKey }`.
@@ -379,6 +402,7 @@ const WolfEventBus = {
 **Проблема.** Сейчас gas estimate берётся из `provider.getFeeData()` без возможности ручной правки. Нет выбора «Slow / Medium / Fast» или tip'а.
 
 **Решение.** На `confirm-tx-screen` добавить:
+
 - `maxPriorityFeePerGas` (tip) — слайдер / пресеты Slow/Medium/Fast.
 - `maxFeePerGas` — автоматически на основе базовой цены + tip, но с кнопкой «Advanced».
 - Предварительный ETA (по gas tracker'у — Alchemy или публичный API).
@@ -392,6 +416,7 @@ const WolfEventBus = {
 **Что:** просмотр, получение, передача.
 
 **Как:**
+
 - Новая вкладка «NFTs» в `wallet-screen`.
 - Alchemy NFT API: `alchemy_getNfts` + media rendering.
 - Fallback на Etherscan / прямые `tokenURI` вызовы.
@@ -405,6 +430,7 @@ const WolfEventBus = {
 **Что:** когда tx mined — badge на иконке расширения (`chrome.action.setBadgeText({ text: '1' })`) + при открытии popup'а — toast «Tx 0xabc… подтверждена в блоке N».
 
 **Как:**
+
 - SW при `send-*` должен запомнить tx hash и стартовать `chrome.alarms` на poll `eth_getTransactionReceipt` каждые 15 сек.
 - При `receipt != null` → `chrome.action.setBadgeText` + push в очередь notifications.
 - Popup при открытии читает очередь и показывает toast'ы.
@@ -418,6 +444,7 @@ const WolfEventBus = {
 **Почему:** пользователю нужно иногда перепроверить seed (смена устройства), но сохранение копии в clipboard manager — это то, из-за чего произошёл инцидент 2026-03-29.
 
 **Как:**
+
 - Отключить copy-to-clipboard (пусть переписывает руками).
 - Скрывать при смене таба / minimise popup'а.
 - Audit log «seed displayed».
@@ -430,23 +457,23 @@ const WolfEventBus = {
 
 `tests/test-plan-2.md` фиксирует **~55% покрытия** и перечисляет 15+ критических пробелов:
 
-| # | Пробел | Что написать |
-|---|---|---|
-| 1 | Auto-lock timeout fires & clears wallet | Integration: mock `chrome.alarms`, verify `_walletsByAddress.size === 0` |
-| 2 | Lockout после 3 неудач | Unit + e2e: `service-worker-unlock.test.js` (скелет есть) |
-| 3 | SW restart mid-session | e2e `resilience.spec.js` частично покрыт; дописать сценарии с открытым send flow |
-| 4 | `chrome.storage.session` expiry | Integration |
-| 5 | Invalid mnemonic edge cases | Unit: `wallet-core-edge-cases.test.js` |
-| 6 | `eth_requestAccounts` (будет после dApp-коннекта) | e2e |
-| 7 | Amount precision (max 18 decimals, scientific notation) | Unit `input-validation.test.js` |
-| 8 | ERC-20 с decimals = 0 (редко, но есть) | Unit + e2e |
-| 9 | Gas estimate fails → UX | e2e `error-resilience.spec.js` |
-| 10 | RPC возвращает null для `eth_chainId` | Integration `rpc-fallback.test.js` |
-| 11 | Token logo недоступен | Unit `token-scope.test.js` |
-| 12 | `fetchAlchemyTransfers` при не-Alchemy RPC | Integration |
-| 13 | CSP violation on inline handler | e2e (headed, проверить console) |
-| 14 | Popup перезагружен во время quiz | e2e |
-| 15 | Сеть переключена во время send | e2e (state isolation) |
+| #   | Пробел                                                  | Что написать                                                                     |
+| --- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | Auto-lock timeout fires & clears wallet                 | Integration: mock `chrome.alarms`, verify `_walletsByAddress.size === 0`         |
+| 2   | Lockout после 3 неудач                                  | Unit + e2e: `service-worker-unlock.test.js` (скелет есть)                        |
+| 3   | SW restart mid-session                                  | e2e `resilience.spec.js` частично покрыт; дописать сценарии с открытым send flow |
+| 4   | `chrome.storage.session` expiry                         | Integration                                                                      |
+| 5   | Invalid mnemonic edge cases                             | Unit: `wallet-core-edge-cases.test.js`                                           |
+| 6   | `eth_requestAccounts` (будет после dApp-коннекта)       | e2e                                                                              |
+| 7   | Amount precision (max 18 decimals, scientific notation) | Unit `input-validation.test.js`                                                  |
+| 8   | ERC-20 с decimals = 0 (редко, но есть)                  | Unit + e2e                                                                       |
+| 9   | Gas estimate fails → UX                                 | e2e `error-resilience.spec.js`                                                   |
+| 10  | RPC возвращает null для `eth_chainId`                   | Integration `rpc-fallback.test.js`                                               |
+| 11  | Token logo недоступен                                   | Unit `token-scope.test.js`                                                       |
+| 12  | `fetchAlchemyTransfers` при не-Alchemy RPC              | Integration                                                                      |
+| 13  | CSP violation on inline handler                         | e2e (headed, проверить console)                                                  |
+| 14  | Popup перезагружен во время quiz                        | e2e                                                                              |
+| 15  | Сеть переключена во время send                          | e2e (state isolation)                                                            |
 
 **Критерий готовности:** `npm run test:unit && npm run test:e2e` → 50+ новых тестов, 0 регрессий.
 
@@ -469,7 +496,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci
-      - run: npm test              # unit + integration
+      - run: npm test # unit + integration
       - run: npx playwright install chromium
       - run: npm run test:e2e
       - name: Perf gate
@@ -479,6 +506,7 @@ jobs:
 ```
 
 **Добавить:**
+
 - Branch protection на `main`: требует green CI.
 - Автопубликация zip как artifact на каждом PR.
 
@@ -487,12 +515,14 @@ jobs:
 ### 5.3 Консолидация тестовой документации (P2)
 
 Сейчас 4 файла с разным состоянием:
+
 - `tests/test-plan.md` — исторический
 - `tests/test-plan-2.md` — gap-анализ (~55%)
 - `tests/test-report.md` — фактический прогон (36 тестов)
 - `tests/TEST-IMPLEMENTATION-COMPLETE.md` — «595+ тестов готовы» (ошибочно, это план-скаффолд, не реальность)
 
 **Предложение:**
+
 - Удалить `TEST-IMPLEMENTATION-COMPLETE.md` — вводит в заблуждение.
 - Переименовать `test-report.md` → `TEST-STATUS.md` — живой файл, обновляется после каждого CI runа (можно автогенерировать).
 - `test-plan.md` + `test-plan-2.md` → объединить в `TEST-PLAN.md` с явным разделом «Что сделано» / «Что осталось».
@@ -512,11 +542,13 @@ jobs:
 ### 6.1 Secrets management (P1)
 
 **Проблема.** Alchemy API key в коде (см. §2.2). Плюс:
+
 - Нет `.env` файла.
 - Нет `.env.example`.
 - Нет инструкций «как подставить свой ключ перед build».
 
 **Решение.**
+
 1. `.env` + `.env.example` + build-скрипт, который подставляет `process.env.ALCHEMY_KEY` в `extension/network-config.js` на этапе сборки.
 2. `.gitignore` уже содержит `node_modules/`, нужно добавить `.env`, `key.pem`, `key_pkcs8.pem`, `extension.crx`.
 3. **Удалить из git** `key.pem`, `key_pkcs8.pem`, `extension.crx` (сейчас untracked, но были помечены как untracked в `git status` — проверить, не уходили ли в историю).
@@ -528,11 +560,13 @@ jobs:
 ### 6.2 Подпись расширения + публикация (P1)
 
 **Сейчас:**
+
 - `key.pem` / `key_pkcs8.pem` лежат в корне репо (untracked).
 - `extension.crx` тоже лежит в корне.
 - План публикации в Chrome Web Store не задокументирован.
 
 **Нужно:**
+
 1. Вынести `key.pem` из репо в `~/.sova/key.pem` (или аналогичный local-only путь).
 2. Скрипт `scripts/package.sh`:
    - Прогнать тесты.
@@ -549,6 +583,7 @@ jobs:
 Сейчас `manifest.json` версия — `1.0.0`, `package.json` — `1.0.0`. Ни один из этих файлов не обновлялся с первой фиксации. После всех изменений это не 1.0.0.
 
 **Предложение:**
+
 - SemVer: `MAJOR.MINOR.PATCH`
 - `MAJOR` — смена storage schema, смена message API между popup/SW
 - `MINOR` — новая сеть, новая фича (dApp connect, WalletConnect)
@@ -563,6 +598,7 @@ jobs:
 **Проблема.** Если собрать zip сейчас и ещё раз завтра, байты могут отличаться (timestamp в zip, порядок файлов). Это затрудняет верификацию «тот ли зип опубликован».
 
 **Решение.**
+
 - `zip` с флагами `-X` (strip extra file attributes) + фиксированный timestamp (`find ... -exec touch -t ...`).
 - Lockfile npm (`package-lock.json` уже есть — хорошо).
 - Docker-based build для полной изоляции.
@@ -576,6 +612,7 @@ jobs:
 См. §5.3 — касается и тестовой, и общей документации.
 
 Конкретно:
+
 - `TEST-IMPLEMENTATION-COMPLETE.md` противоречит `test-report.md` и `test-plan-2.md` → удалить.
 - `optimization-plan.md` говорит «всё закончено», но `popup.js` всё ещё 2165 строк → дописать «Этап 7: финальная декомпозиция — не выполнен».
 - `README.md` минимальный → заменить ссылкой на `DOCUMENTATION.md`.
@@ -585,6 +622,7 @@ jobs:
 ### 7.2 Архитектурные диаграммы (P2)
 
 В `DOCUMENTATION.md` есть ASCII-диаграмма слоёв. Улучшить:
+
 - Sequence-диаграмма unlock-flow (popup → SW → ethers.Wallet.fromEncryptedJson → chrome.alarms.create).
 - Sequence-диаграмма send-flow.
 - State machine для экранов popup'а.
@@ -597,10 +635,12 @@ jobs:
 ### 7.3 Закрепить язык документации (P2)
 
 Сейчас смесь:
+
 - RU: `README.md`, `extension_changes_since_backup.md`, `optimization-plan.md`, `test-plan-2.md`, `test-report.md`, внутренние комментарии в коде.
 - EN: `incident-report.md`, `DOCUMENTATION.md` (новый — RU), JSDoc-комментарии в некоторых модулях, лендинг (двуязычный).
 
 **Предложение:** основной язык — **русский** (согласно позиционированию проекта). EN зеркало для:
+
 - `incident-report.md` (сложившийся международный стандарт форматов security write-up'ов),
 - `README.md` (первый контакт для международных пользователей GitHub),
 - лендинг.
@@ -612,6 +652,7 @@ jobs:
 ### 7.4 API reference для IPC-сообщений SW (P3)
 
 Таблица в §3 `DOCUMENTATION.md` — это минимум. Полезно иметь отдельный `docs/ipc-api.md` с примерами:
+
 - Каждое сообщение: payload, return, error cases, side effects.
 - Версионирование: при изменении формата — bump minor version (`manifest.json`) + changelog.
 

@@ -31,16 +31,17 @@
 
 После создания этого отчёта была выполнена **Phase 1** из `OPTIMIZATION-PLAN.md`. Все 5 CRITICAL находок и одна HIGH (HIGH-2 как блок-смежный фикс к CRIT-2) — закрыты.
 
-| Finding | Файл | Что сделано | Тесты |
-|---|---|---|---|
-| **CRIT-1** | `extension/network-config.js` | Удалён hardcoded Alchemy ключ. Дефолт → publicnode.com. Hardcoded ключ удалён также из всех `.md` документов. Custom RPC доступен через popup setup screen. | manual smoke |
-| **CRIT-2** | `extension/background/service-worker.js:65-150` | Добавлены `isFromExtensionContext` / `isFromOurContentScript` helpers + два whitelist'а сообщений (`POPUP_ONLY_MESSAGE_TYPES` и `CONTENT_SCRIPT_MESSAGE_TYPES`). Все 10 internal сообщений теперь требуют sender check. | 251/251 |
-| **CRIT-3** | `extension/background/service-worker.js:44-83, 113-127` | `_failedAttempts` / `_lockoutUntil` удалены. Заменены на persistent helpers `getLockoutState` / `recordFailedAttempt` / `resetLockoutState` хранящие state в `chrome.storage.local.security:lockout`. Exponential backoff с cap 15 минут (вместо 60 секунд). | 251/251 |
-| **CRIT-4** | `extension/inpage/provider.js:222-241` | `configurable: true → false` для обоих `window.ethereum` и `window.sova`. После установки provider больше нельзя delete/replace. | 251/251 |
-| **CRIT-5** | `extension/background/service-worker.js:1006-1015, 329-345` + `dapp-approval.js:22-35, 404-425` | `persistPendingRequest` теперь хранит **только метаданные** (id, origin, method, createdAt, expiresAt) — без params, needsUnlock, targetAddress. При SW restart `dapp-get-pending` возвращает `{ request: null, reason: 'expired' }`, popup показывает «Запрос истёк». Добавлен `cleanup-pending` alarm каждые 5 минут. | 251/251 |
-| **HIGH-2** (бонус) | `extension/content/content-script.js:90-120` | content-script теперь принимает `dapp-event` только от своего SW (sender id check + tab=null check) и только для whitelist'а событий (`accountsChanged`, `chainChanged`, `connect`, `disconnect`). | 251/251 |
+| Finding            | Файл                                                                                            | Что сделано                                                                                                                                                                                                                                                                                                             | Тесты        |
+| ------------------ | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **CRIT-1**         | `extension/network-config.js`                                                                   | Удалён hardcoded Alchemy ключ. Дефолт → publicnode.com. Hardcoded ключ удалён также из всех `.md` документов. Custom RPC доступен через popup setup screen.                                                                                                                                                             | manual smoke |
+| **CRIT-2**         | `extension/background/service-worker.js:65-150`                                                 | Добавлены `isFromExtensionContext` / `isFromOurContentScript` helpers + два whitelist'а сообщений (`POPUP_ONLY_MESSAGE_TYPES` и `CONTENT_SCRIPT_MESSAGE_TYPES`). Все 10 internal сообщений теперь требуют sender check.                                                                                                 | 251/251      |
+| **CRIT-3**         | `extension/background/service-worker.js:44-83, 113-127`                                         | `_failedAttempts` / `_lockoutUntil` удалены. Заменены на persistent helpers `getLockoutState` / `recordFailedAttempt` / `resetLockoutState` хранящие state в `chrome.storage.local.security:lockout`. Exponential backoff с cap 15 минут (вместо 60 секунд).                                                            | 251/251      |
+| **CRIT-4**         | `extension/inpage/provider.js:222-241`                                                          | `configurable: true → false` для обоих `window.ethereum` и `window.sova`. После установки provider больше нельзя delete/replace.                                                                                                                                                                                        | 251/251      |
+| **CRIT-5**         | `extension/background/service-worker.js:1006-1015, 329-345` + `dapp-approval.js:22-35, 404-425` | `persistPendingRequest` теперь хранит **только метаданные** (id, origin, method, createdAt, expiresAt) — без params, needsUnlock, targetAddress. При SW restart `dapp-get-pending` возвращает `{ request: null, reason: 'expired' }`, popup показывает «Запрос истёк». Добавлен `cleanup-pending` alarm каждые 5 минут. | 251/251      |
+| **HIGH-2** (бонус) | `extension/content/content-script.js:90-120`                                                    | content-script теперь принимает `dapp-event` только от своего SW (sender id check + tab=null check) и только для whitelist'а событий (`accountsChanged`, `chainChanged`, `connect`, `disconnect`).                                                                                                                      | 251/251      |
 
 **Дополнительно:**
+
 - `manifest.json` version → **1.1.1** (security patch)
 - `popup.html` лейбл изменён на «Использовать публичный RPC (publicnode)»
 - `DOCUMENTATION.md` обновлён: ограничение про hardcoded key помечено ✅ FIXED
@@ -48,6 +49,7 @@
 - `npm test` → **251/251 tests passing** (никаких регрессий)
 
 **Не сделано в Phase 1 (отложено в Phase 2-3):**
+
 - Замена Math.random на crypto.getRandomValues для approval id (MED-4) — entropy достаточная при наличии sender validation (CRIT-2)
 - Удаление git history с старым ключом — destructive операция, требует разрешения пользователя
 - Per-origin rate limiting на approvals (MED-3)
@@ -56,18 +58,19 @@
 
 После Phase 1 была выполнена **Phase 2** — все 8 HIGH severity findings.
 
-| Finding | Файл | Что сделано | Тесты |
-|---|---|---|---|
-| **HIGH-1** | `service-worker.js:582-592` | RPC method whitelist вместо blacklist. Все методы which не в switch-case или if-блоках возвращают `4200 Method not supported`. | 251/251 |
-| **HIGH-2** | (бонус Phase 1) | Sender validation в `content/content-script.js:90-120` | 251/251 |
-| **HIGH-3** | `popup/modules/dapp-approval.js` | Все 6 случаев `innerHTML = \`...${data}...\`` заменены на DOM API через новые helper'ы `buildKvRow`, `buildWarnBox`, `buildTreeTitle`. Удалена функция `escapeHtml`. | 251/251 |
-| **HIGH-4** | `service-worker.js:802-839` | EIP-712 chainId mismatch теперь **HARD BLOCK** с code `4901` (Chain not configured), до approval popup не доходит. Также добавлена type validation `domain.chainId` (number/string/bigint). | 251/251 |
-| **HIGH-5** | `popup.js:1156` | `setAccountsCache(accounts)` после `addSubAccount` для invalidate кэша. | 251/251 |
-| **HIGH-6** | `popup.js` | **Все 46 fallback chains удалены.** Добавлен `assertModulesLoaded()` в bootstrap (проверка наличия 13 модулей × методов). popup.js: **2240 → 1263 строк** (−977, −44%). При отсутствии модуля popup показывает понятный error overlay. | 251/251 |
-| **HIGH-7** | `manifest.json:15-25` | Из `host_permissions` удалены `https://*/*`, `http://localhost/*`, `http://127.0.0.1/*`. Они остались в `content_scripts.matches` (нужны для инжекции) и `web_accessible_resources.matches`, но не дают SW право на произвольные HTTP запросы. | 251/251 |
-| **HIGH-8** | `popup.js:1657-1665` | `confirmSend` теперь awaits `sendToSW({ type: 'reset-lock-timer' })` и логирует warning при failure. | 251/251 |
+| Finding    | Файл                             | Что сделано                                                                                                                                                                                                                                    | Тесты   |
+| ---------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **HIGH-1** | `service-worker.js:582-592`      | RPC method whitelist вместо blacklist. Все методы which не в switch-case или if-блоках возвращают `4200 Method not supported`.                                                                                                                 | 251/251 |
+| **HIGH-2** | (бонус Phase 1)                  | Sender validation в `content/content-script.js:90-120`                                                                                                                                                                                         | 251/251 |
+| **HIGH-3** | `popup/modules/dapp-approval.js` | Все 6 случаев `innerHTML = \`...${data}...\``заменены на DOM API через новые helper'ы`buildKvRow`, `buildWarnBox`, `buildTreeTitle`. Удалена функция `escapeHtml`.                                                                             | 251/251 |
+| **HIGH-4** | `service-worker.js:802-839`      | EIP-712 chainId mismatch теперь **HARD BLOCK** с code `4901` (Chain not configured), до approval popup не доходит. Также добавлена type validation `domain.chainId` (number/string/bigint).                                                    | 251/251 |
+| **HIGH-5** | `popup.js:1156`                  | `setAccountsCache(accounts)` после `addSubAccount` для invalidate кэша.                                                                                                                                                                        | 251/251 |
+| **HIGH-6** | `popup.js`                       | **Все 46 fallback chains удалены.** Добавлен `assertModulesLoaded()` в bootstrap (проверка наличия 13 модулей × методов). popup.js: **2240 → 1263 строк** (−977, −44%). При отсутствии модуля popup показывает понятный error overlay.         | 251/251 |
+| **HIGH-7** | `manifest.json:15-25`            | Из `host_permissions` удалены `https://*/*`, `http://localhost/*`, `http://127.0.0.1/*`. Они остались в `content_scripts.matches` (нужны для инжекции) и `web_accessible_resources.matches`, но не дают SW право на произвольные HTTP запросы. | 251/251 |
+| **HIGH-8** | `popup.js:1657-1665`             | `confirmSend` теперь awaits `sendToSW({ type: 'reset-lock-timer' })` и логирует warning при failure.                                                                                                                                           | 251/251 |
 
 **Дополнительно:**
+
 - `manifest.json` version → **1.2.0** (minor release)
 - 251/251 unit+integration тестов passing — никаких регрессий
 - 6 модифицированных JS файлов прошли esbuild syntax check
@@ -76,35 +79,37 @@
 
 После Phase 2 была выполнена **Phase 3** — все 17 MEDIUM severity findings + 2 LOW (LOW-8, LOW-9) подняты до MED и закрыты. Плюс между Phase 2 и Phase 3 было два hotfix'а (v1.2.1 — tx-history empty state, v1.2.2 — token list placeholder).
 
-| Finding | Файл | Что сделано | Группа |
-|---|---|---|---|
-| **MED-1** | `manifest.json:75` | Удалён `https:` wildcard из `img-src` CSP. Только whitelisted: `raw.githubusercontent.com`, `tokens.1inch.io`, `tokens-data.1inch.io`, `data:` | A: CSP |
-| **MED-2** | `manifest.json:75` | Удалён `'unsafe-inline'` из `style-src`. Все inline styles уже были убраны в HTML. | A: CSP |
-| **MED-3** | `service-worker.js` (requestApproval) | Per-origin cap = 1 pending approval, global cap = 20. При превышении — `4001 User rejected`. | B: DoS |
-| **MED-4** | `service-worker.js:generateApprovalId` | `Math.random().toString(36)` → `crypto.getRandomValues(Uint8Array(16))`. 128-битная энтропия. | B: DoS |
-| **MED-5** | `dapp-approval.js:checkFirstTimeRecipient/markRecipientKnown` | `knownRecipients` теперь scoped per-origin: `knownRecipients[origin][addrLower] = timestamp`. Защита от cross-dApp privacy leak. | C: Privacy |
-| **MED-6** | `service-worker.js` (add-sub-account) | После деривации субаккаунта `main.mnemonic = null; main = null;` — explicit nullify ссылок на фразу. | C: Privacy |
-| **MED-7** | `service-worker.js:enforceConnectedOriginsLimits` | LRU 100 + TTL 90 дней для `connectedOrigins`. Применяется при каждом `saveConnectedOrigins`. | B: DoS |
-| **MED-8** | `service-worker.js:appendAuditLog` | cap 1000 → 500, TTL 30 дней. Старые записи фильтруются при каждой записи. | B: DoS |
-| **MED-9** | `popup/modules/token-state.js:197` | 3 sec timeout на каждую попытку загрузить token logo. `setTimeout` + `clearTimer`. Fail-fast к fallback. | E: UX |
-| **MED-10** | `popup/modules/event-binder.js:splitArgsAware` | Naive `raw.split(',')` → proper tokenizer с учётом кавычек. `showError('create', 'Ошибка, не повезло')` больше не ломается. | F: Quality |
-| **MED-11** | `popup.js:617, 639, 418` | Address null-checks после `getAccountsCached`. Если `acct?.address` отсутствует → `console.error` + `showScreen('screen-setup')`. | F: Quality |
-| **MED-12** | `popup/modules/send-flow.js:208-217` | Strict regex `/^\d+(\.\d+)?$/` на amount. Блокирует `Infinity`, `1e-30`, `123abc`, `  `. | D: Input |
-| **MED-13** | `shared/rpc-hosts.js` (NEW) | ALLOWED_RPC_HOSTS вынесен в shared module. `popup.js` и `network-state.js` импортируют из `globalThis.WolfWalletRpcHosts.ALLOWED_RPC_HOSTS`. Freezed array. | F: Quality |
-| **MED-14** | `popup/modules/tx-history.js` | Warning "История недоступна для этого RPC" при не-Alchemy RPC. Раньше молча возвращал empty array. | E: UX (hotfix v1.2.1) |
-| **MED-15** | `popup/modules/dapp-approval.js:startExpiryCountdown` | `window.addEventListener('beforeunload', () => clearInterval(interval))`. Timer cleanup при закрытии approval popup. | E: UX |
-| **MED-16** | `popup/modules/dapp-approval.js` | После unlock: `password = ''; pwInput.value = '';`. Explicit cleanup. | C: Privacy |
-| **MED-17** | `service-worker.js:rememberUnlockedWallet` | LRU cap 20 для `_walletsByAddress`. Evict oldest non-active wallet при превышении. | B: DoS |
-| **LOW-8** | `inpage/provider.js:_pending` | TTL 120 сек на каждый pending request. `setTimeout` cleanup + `settlePending` helper. Защита от memory leak когда SW dies. | G: Inpage |
-| **LOW-9** | `inpage/provider.js:SovaEventEmitter` | Cap 20 слушателей на событие. Warn в console при превышении. Защита от React re-render без `off()`. | G: Inpage |
+| Finding    | Файл                                                          | Что сделано                                                                                                                                                 | Группа                |
+| ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| **MED-1**  | `manifest.json:75`                                            | Удалён `https:` wildcard из `img-src` CSP. Только whitelisted: `raw.githubusercontent.com`, `tokens.1inch.io`, `tokens-data.1inch.io`, `data:`              | A: CSP                |
+| **MED-2**  | `manifest.json:75`                                            | Удалён `'unsafe-inline'` из `style-src`. Все inline styles уже были убраны в HTML.                                                                          | A: CSP                |
+| **MED-3**  | `service-worker.js` (requestApproval)                         | Per-origin cap = 1 pending approval, global cap = 20. При превышении — `4001 User rejected`.                                                                | B: DoS                |
+| **MED-4**  | `service-worker.js:generateApprovalId`                        | `Math.random().toString(36)` → `crypto.getRandomValues(Uint8Array(16))`. 128-битная энтропия.                                                               | B: DoS                |
+| **MED-5**  | `dapp-approval.js:checkFirstTimeRecipient/markRecipientKnown` | `knownRecipients` теперь scoped per-origin: `knownRecipients[origin][addrLower] = timestamp`. Защита от cross-dApp privacy leak.                            | C: Privacy            |
+| **MED-6**  | `service-worker.js` (add-sub-account)                         | После деривации субаккаунта `main.mnemonic = null; main = null;` — explicit nullify ссылок на фразу.                                                        | C: Privacy            |
+| **MED-7**  | `service-worker.js:enforceConnectedOriginsLimits`             | LRU 100 + TTL 90 дней для `connectedOrigins`. Применяется при каждом `saveConnectedOrigins`.                                                                | B: DoS                |
+| **MED-8**  | `service-worker.js:appendAuditLog`                            | cap 1000 → 500, TTL 30 дней. Старые записи фильтруются при каждой записи.                                                                                   | B: DoS                |
+| **MED-9**  | `popup/modules/token-state.js:197`                            | 3 sec timeout на каждую попытку загрузить token logo. `setTimeout` + `clearTimer`. Fail-fast к fallback.                                                    | E: UX                 |
+| **MED-10** | `popup/modules/event-binder.js:splitArgsAware`                | Naive `raw.split(',')` → proper tokenizer с учётом кавычек. `showError('create', 'Ошибка, не повезло')` больше не ломается.                                 | F: Quality            |
+| **MED-11** | `popup.js:617, 639, 418`                                      | Address null-checks после `getAccountsCached`. Если `acct?.address` отсутствует → `console.error` + `showScreen('screen-setup')`.                           | F: Quality            |
+| **MED-12** | `popup/modules/send-flow.js:208-217`                          | Strict regex `/^\d+(\.\d+)?$/` на amount. Блокирует `Infinity`, `1e-30`, `123abc`, `  `.                                                                    | D: Input              |
+| **MED-13** | `shared/rpc-hosts.js` (NEW)                                   | ALLOWED_RPC_HOSTS вынесен в shared module. `popup.js` и `network-state.js` импортируют из `globalThis.WolfWalletRpcHosts.ALLOWED_RPC_HOSTS`. Freezed array. | F: Quality            |
+| **MED-14** | `popup/modules/tx-history.js`                                 | Warning "История недоступна для этого RPC" при не-Alchemy RPC. Раньше молча возвращал empty array.                                                          | E: UX (hotfix v1.2.1) |
+| **MED-15** | `popup/modules/dapp-approval.js:startExpiryCountdown`         | `window.addEventListener('beforeunload', () => clearInterval(interval))`. Timer cleanup при закрытии approval popup.                                        | E: UX                 |
+| **MED-16** | `popup/modules/dapp-approval.js`                              | После unlock: `password = ''; pwInput.value = '';`. Explicit cleanup.                                                                                       | C: Privacy            |
+| **MED-17** | `service-worker.js:rememberUnlockedWallet`                    | LRU cap 20 для `_walletsByAddress`. Evict oldest non-active wallet при превышении.                                                                          | B: DoS                |
+| **LOW-8**  | `inpage/provider.js:_pending`                                 | TTL 120 сек на каждый pending request. `setTimeout` cleanup + `settlePending` helper. Защита от memory leak когда SW dies.                                  | G: Inpage             |
+| **LOW-9**  | `inpage/provider.js:SovaEventEmitter`                         | Cap 20 слушателей на событие. Warn в console при превышении. Защита от React re-render без `off()`.                                                         | G: Inpage             |
 
 **Дополнительно:**
+
 - `manifest.json` version → **1.3.0** (minor release)
 - **331/331** unit+integration тестов passing — никаких регрессий (до Phase 3: 251/251, добавлено 80 новых тестов в Phase 2.5 test coverage review)
 - Все модифицированные JS файлы прошли `node --check` syntax check
 - Между фазами были hotfixes v1.2.1 (MED-14 tx history empty warning) и v1.2.2 (token list placeholder regression)
 
 **Не включено в Phase 3:**
+
 - LOW-1 через LOW-7, LOW-10, LOW-11, LOW-12, LOW-13, LOW-14, LOW-15 — перенесены в Phase 4 (code quality, documentation, minor UX)
 - Архитектурный refactor (TS, декомпозиция модулей) — Phase 5
 
@@ -116,13 +121,13 @@
 
 Однако аудит выявил **значительное число security и code quality проблем**, многие из которых связаны с недавним добавлением dApp-коннектности и относятся к **defense-in-depth слоям**, которые сейчас отсутствуют:
 
-| Severity | Найдено | Что это |
-|---|:---:|---|
-| **CRITICAL** | **5** | Прямые security уязвимости. Требуют немедленного фикса |
-| **HIGH** | **8** | Эксплуатируемые баги или серьёзные пробелы в изоляции |
-| **MEDIUM** | **17** | Defensive coding gaps, хардеринг, утечки памяти |
-| **LOW** | **15** | Code smell, документация, мелкие UX-проблемы |
-| **POSITIVE** | **15** | Хорошо спроектированные части, которые НЕ нужно менять |
+| Severity     | Найдено | Что это                                                |
+| ------------ | :-----: | ------------------------------------------------------ |
+| **CRITICAL** |  **5**  | Прямые security уязвимости. Требуют немедленного фикса |
+| **HIGH**     |  **8**  | Эксплуатируемые баги или серьёзные пробелы в изоляции  |
+| **MEDIUM**   | **17**  | Defensive coding gaps, хардеринг, утечки памяти        |
+| **LOW**      | **15**  | Code smell, документация, мелкие UX-проблемы           |
+| **POSITIVE** | **15**  | Хорошо спроектированные части, которые НЕ нужно менять |
 
 **Ключевые выводы:**
 
@@ -148,14 +153,15 @@
 
 Аудит проводился в 4 параллельных потока специализированными исследовательскими агентами:
 
-| Агент | Скоуп | Файлы |
-|---|---|---|
-| **Security** | Crypto, key handling, message validation, CSP, manifest | `service-worker.js`, `manifest.json`, `network-config.js`, `shared/*` |
-| **dApp layer** | Inpage provider, content-script bridge, approval UI, EIP-1193 | `inpage/provider.js`, `content/content-script.js`, `popup/modules/dapp-approval.js`, `site/dapp-demo.html` |
-| **Popup quality** | State management, race conditions, error handling, dead code | `popup/popup.js`, `popup/modules/*` (без dapp-approval.js) |
-| **Tests + docs** | Покрытие тестами, актуальность документации после правок | `tests/`, все `*.md` файлы |
+| Агент             | Скоуп                                                         | Файлы                                                                                                      |
+| ----------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Security**      | Crypto, key handling, message validation, CSP, manifest       | `service-worker.js`, `manifest.json`, `network-config.js`, `shared/*`                                      |
+| **dApp layer**    | Inpage provider, content-script bridge, approval UI, EIP-1193 | `inpage/provider.js`, `content/content-script.js`, `popup/modules/dapp-approval.js`, `site/dapp-demo.html` |
+| **Popup quality** | State management, race conditions, error handling, dead code  | `popup/popup.js`, `popup/modules/*` (без dapp-approval.js)                                                 |
+| **Tests + docs**  | Покрытие тестами, актуальность документации после правок      | `tests/`, все `*.md` файлы                                                                                 |
 
 После завершения агентов:
+
 1. **Spot-check** 3 самых критичных claim'ов прямой проверкой кода через `grep -n` + `Read`
 2. **Дедупликация** перекрывающихся находок (одна и та же проблема в разных отчётах объединена)
 3. **Reordering** по фактической эксплуатируемости
@@ -168,27 +174,27 @@
 
 ### Файлы расширения
 
-| Файл | Строк | Назначение |
-|---|---:|---|
-| `background/service-worker.js` | **1164** | Сигнинг, изоляция ключа, dApp dispatcher, approval lifecycle |
-| `popup/popup.js` | **2240** | Главный UI-контроллер |
-| `popup/popup.html` | 340 | Разметка (включая dApp-approval-screen, connected-sites screen) |
-| `popup/popup.css` | 912 | Стили |
-| `popup/modules/dapp-approval.js` | **609** | Approval popup controller (inline unlock, render для всех методов) |
-| `popup/modules/tx-history.js` | 414 | История транзакций (Alchemy-only) |
-| `popup/modules/network-state.js` | 363 | Сети, RPC, валидация |
-| `popup/modules/send-flow.js` | 335 | Send flow ETH + ERC-20 |
-| `popup/modules/token-state.js` | 325 | ERC-20 управление |
-| `inpage/provider.js` | **262** | EIP-1193 + EIP-6963 provider |
-| `popup/modules/avatar.js` | 171 | SVG-аватары |
-| `popup/modules/ui-templates.js` | 114 | Network picker, feedback mounts |
-| `content/content-script.js` | **111** | Bridge inpage ↔ SW |
-| `shared/wallet-core.js` | 103 | Утилиты |
-| `popup/modules/event-binder.js` | 63 | Declarative `data-onclick` |
-| `shared/networks.js` | 56 | Networks factory |
-| `popup/modules/ui-state.js` | 53 | Навигация |
-| `manifest.json` | 80 | MV3 конфиг |
-| `network-config.js` | 9 | RPC defaults (содержит API key!) |
+| Файл                             |    Строк | Назначение                                                         |
+| -------------------------------- | -------: | ------------------------------------------------------------------ |
+| `background/service-worker.js`   | **1164** | Сигнинг, изоляция ключа, dApp dispatcher, approval lifecycle       |
+| `popup/popup.js`                 | **2240** | Главный UI-контроллер                                              |
+| `popup/popup.html`               |      340 | Разметка (включая dApp-approval-screen, connected-sites screen)    |
+| `popup/popup.css`                |      912 | Стили                                                              |
+| `popup/modules/dapp-approval.js` |  **609** | Approval popup controller (inline unlock, render для всех методов) |
+| `popup/modules/tx-history.js`    |      414 | История транзакций (Alchemy-only)                                  |
+| `popup/modules/network-state.js` |      363 | Сети, RPC, валидация                                               |
+| `popup/modules/send-flow.js`     |      335 | Send flow ETH + ERC-20                                             |
+| `popup/modules/token-state.js`   |      325 | ERC-20 управление                                                  |
+| `inpage/provider.js`             |  **262** | EIP-1193 + EIP-6963 provider                                       |
+| `popup/modules/avatar.js`        |      171 | SVG-аватары                                                        |
+| `popup/modules/ui-templates.js`  |      114 | Network picker, feedback mounts                                    |
+| `content/content-script.js`      |  **111** | Bridge inpage ↔ SW                                                 |
+| `shared/wallet-core.js`          |      103 | Утилиты                                                            |
+| `popup/modules/event-binder.js`  |       63 | Declarative `data-onclick`                                         |
+| `shared/networks.js`             |       56 | Networks factory                                                   |
+| `popup/modules/ui-state.js`      |       53 | Навигация                                                          |
+| `manifest.json`                  |       80 | MV3 конфиг                                                         |
+| `network-config.js`              |        9 | RPC defaults (содержит API key!)                                   |
 
 **Жирным** выделены критические для аудита файлы (key/crypto/dApp surface).
 
@@ -218,12 +224,14 @@ bsc: 'https://bnb-mainnet.g.alchemy.com/v2/REDACTED_REVOKED_KEY',
 **Проблема:** API key встроен в каждую копию расширения, попадает в zip который раздаётся через лендинг (`site/assets/wolf-wallet-extension.zip`). После публикации в Chrome Web Store ключ окажется у всех пользователей.
 
 **Сценарий атаки:**
+
 1. Атакующий распаковывает `.crx`/`.zip` файл расширения
 2. Извлекает ключ
 3. Использует его как свой бесплатный Alchemy API → расходует rate limit всех легитимных пользователей; возможна заморозка ключа Alchemy'ем за злоупотребление
 4. Если ключ привязан к платному аккаунту — биллинг
 
 **Фикс:**
+
 1. **Немедленно отозвать ключ** в Alchemy dashboard
 2. Удалить из `network-config.js`, заменить на `publicnode.com` дефолты:
    ```js
@@ -256,19 +264,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 `handleDappRequest` (для типа `dapp-request`) **корректно** проверяет `sender.tab.url` против `msg.origin` (строки 313–328). Но **все остальные** message types НЕ проверяют sender:
 
-| `type` | Sender check? | Может вызвать malicious content-script? |
-|---|:---:|:---:|
-| `unlock` | ❌ | Да (теоретически — но нужен пароль) |
-| `lock` | ❌ | Да (можно DoS — постоянно лочить wallet) |
-| `activate-account` | ❌ | Да (переключить активный аккаунт) |
-| `add-sub-account` | ❌ | Да (нужен пароль) |
-| `reset-lock-timer` | ❌ | Да (продлить session indefinitely) |
-| `network-changed` | ❌ | Да (broadcast фейк chainChanged всем dApp'ам) |
-| `dapp-approval-response` | ❌ | **ДА — критично** |
-| `dapp-disconnect-origin` | ❌ | **ДА — критично** |
-| `dapp-get-pending` | ❌ | Да (читать pending request'ы любого origin'а) |
-| `dapp-request` | ✅ | Корректно проверено |
-| `get-wallet-address` | ❌ | Да (проверить unlock state) |
+| `type`                   | Sender check? |    Может вызвать malicious content-script?    |
+| ------------------------ | :-----------: | :-------------------------------------------: |
+| `unlock`                 |      ❌       |      Да (теоретически — но нужен пароль)      |
+| `lock`                   |      ❌       |   Да (можно DoS — постоянно лочить wallet)    |
+| `activate-account`       |      ❌       |       Да (переключить активный аккаунт)       |
+| `add-sub-account`        |      ❌       |               Да (нужен пароль)               |
+| `reset-lock-timer`       |      ❌       |      Да (продлить session indefinitely)       |
+| `network-changed`        |      ❌       | Да (broadcast фейк chainChanged всем dApp'ам) |
+| `dapp-approval-response` |      ❌       |               **ДА — критично**               |
+| `dapp-disconnect-origin` |      ❌       |               **ДА — критично**               |
+| `dapp-get-pending`       |      ❌       | Да (читать pending request'ы любого origin'а) |
+| `dapp-request`           |      ✅       |              Корректно проверено              |
+| `get-wallet-address`     |      ❌       |          Да (проверить unlock state)          |
 
 **Сценарий 1 — обход approval (`dapp-approval-response`):**
 
@@ -292,15 +300,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 ```js
 chrome.runtime.sendMessage({
   type: 'dapp-disconnect-origin',
-  origin: 'https://uniswap.org'  // origin жертвы
+  origin: 'https://uniswap.org', // origin жертвы
 });
 ```
+
 SW удалит `connectedOrigins['https://uniswap.org']`. Не критично сам по себе, но позволяет постоянно отсоединять user'а от его dApp'ов = DoS.
 
 **Сценарий 3 — read pending:**
 
 ```js
-chrome.runtime.sendMessage({type: 'dapp-get-pending'});
+chrome.runtime.sendMessage({ type: 'dapp-get-pending' });
 // Получит ВСЕ pending approvals для всех origin'ов, включая полные params
 // для eth_sendTransaction (адреса, суммы) и personal_sign (содержимое сообщения)
 ```
@@ -312,7 +321,7 @@ function isFromExtensionContext(sender) {
   // Popup и approval окна имеют sender.url начинающийся с chrome-extension://<our-id>/
   if (!sender) return false;
   if (sender.id !== chrome.runtime.id) return false;
-  if (sender.tab) return false;  // ← если есть tab, это content-script (НЕ extension page)
+  if (sender.tab) return false; // ← если есть tab, это content-script (НЕ extension page)
   return true;
 }
 
@@ -322,9 +331,16 @@ function isFromContentScript(sender) {
 
 // В handleMessage:
 const internalMessageTypes = new Set([
-  'unlock', 'lock', 'activate-account', 'add-sub-account',
-  'reset-lock-timer', 'get-wallet-address', 'network-changed',
-  'dapp-approval-response', 'dapp-disconnect-origin', 'dapp-get-pending'
+  'unlock',
+  'lock',
+  'activate-account',
+  'add-sub-account',
+  'reset-lock-timer',
+  'get-wallet-address',
+  'network-changed',
+  'dapp-approval-response',
+  'dapp-disconnect-origin',
+  'dapp-get-pending',
 ]);
 
 if (internalMessageTypes.has(msg.type)) {
@@ -387,17 +403,17 @@ try {
 
 ```js
 async function getLockoutState() {
-  const { _failedAttempts = 0, _lockoutUntil = 0 } =
-    await chrome.storage.local.get(['_failedAttempts', '_lockoutUntil']);
+  const { _failedAttempts = 0, _lockoutUntil = 0 } = await chrome.storage.local.get([
+    '_failedAttempts',
+    '_lockoutUntil',
+  ]);
   return { failedAttempts: _failedAttempts, lockoutUntil: _lockoutUntil };
 }
 
 async function recordFailedAttempt() {
   const { failedAttempts } = await getLockoutState();
   const next = failedAttempts + 1;
-  const lockoutUntil = next >= 3
-    ? Date.now() + Math.min(60_000, 5_000 * (next - 2))
-    : 0;
+  const lockoutUntil = next >= 3 ? Date.now() + Math.min(60_000, 5_000 * (next - 2)) : 0;
   await chrome.storage.local.set({
     _failedAttempts: next,
     _lockoutUntil: lockoutUntil,
@@ -410,6 +426,7 @@ async function resetFailedAttempts() {
 ```
 
 И в `unlock case`:
+
 ```js
 const { lockoutUntil } = await getLockoutState();
 if (Date.now() < lockoutUntil) {
@@ -436,19 +453,20 @@ try {
 if (!window.ethereum) {
   Object.defineProperty(window, 'ethereum', {
     value: provider,
-    configurable: true,    // ← позволяет любому скрипту переопределить
+    configurable: true, // ← позволяет любому скрипту переопределить
     writable: false,
   });
 }
 
 Object.defineProperty(window, 'sova', {
   value: provider,
-  configurable: true,    // ← то же самое
+  configurable: true, // ← то же самое
   writable: false,
 });
 ```
 
 **Проблема:** `configurable: true` означает что любой скрипт после нас может вызвать:
+
 ```js
 delete window.sova;
 Object.defineProperty(window, 'sova', { value: fakeProvider, ... });
@@ -470,14 +488,14 @@ Object.defineProperty(window, 'sova', { value: fakeProvider, ... });
 if (!window.ethereum) {
   Object.defineProperty(window, 'ethereum', {
     value: provider,
-    configurable: false,   // ← после установки нельзя удалить
+    configurable: false, // ← после установки нельзя удалить
     writable: false,
   });
 }
 
 Object.defineProperty(window, 'sova', {
   value: provider,
-  configurable: false,    // ← то же
+  configurable: false, // ← то же
   writable: false,
 });
 ```
@@ -492,18 +510,28 @@ Object.defineProperty(window, 'sova', {
 
 ```js
 persistPendingRequest(id, {
-  id, origin, method, params, createdAt, expiresAt,
-  needsUnlock, targetAccountIndex, targetAddress,
+  id,
+  origin,
+  method,
+  params,
+  createdAt,
+  expiresAt,
+  needsUnlock,
+  targetAccountIndex,
+  targetAddress,
 });
 ```
 
 `params` для `eth_sendTransaction` содержит:
+
 - `from`, `to`, `value`, `data`, `gasLimit`, `gasEstimate`, `feeWei`, `chainId`
 
 `params` для `eth_signTypedData_v4` содержит:
+
 - Полный typed data объект (могут быть permit'ы с unlimited approval, order'ы DEX'ов, etc.)
 
 `params` для `personal_sign` содержит:
+
 - Сырое сообщение (может содержать nonce'ы для авторизации, ссылки и т.п.)
 
 Всё это персистится в `chrome.storage.session` в открытом виде. Любое расширение с permission `storage` может прочитать (правда, sandbox extension storage обычно изолирован).
@@ -530,10 +558,12 @@ persistPendingRequest(id, {
    chrome.alarms.create('cleanup-pending', { periodInMinutes: 5 });
    chrome.alarms.onAlarm.addListener(async (alarm) => {
      if (alarm.name === 'cleanup-pending') {
-       const { pendingDappRequests = {} } = await chrome.storage.session.get(['pendingDappRequests']);
+       const { pendingDappRequests = {} } = await chrome.storage.session.get([
+         'pendingDappRequests',
+       ]);
        const now = Date.now();
        const cleaned = Object.fromEntries(
-         Object.entries(pendingDappRequests).filter(([_, req]) => req.expiresAt > now)
+         Object.entries(pendingDappRequests).filter(([_, req]) => req.expiresAt > now),
        );
        await chrome.storage.session.set({ pendingDappRequests: cleaned });
      }
@@ -558,14 +588,27 @@ if (typeof method === 'string' && method.startsWith('eth_')) {
 **Проблема:** **Blacklist вместо whitelist**. Если в будущем появится метод `eth_unlock`, `eth_exportPrivateKey` (гипотетически), или provider-specific `eth_sendBundle` (Flashbots), он автоматически будет проксирован без проверки.
 
 **Фикс:** заменить на whitelist:
+
 ```js
 const READ_ONLY_PROXY_METHODS = new Set([
-  'eth_chainId', 'net_version', 'eth_blockNumber',
-  'eth_getBalance', 'eth_call', 'eth_estimateGas', 'eth_gasPrice',
-  'eth_feeHistory', 'eth_getCode', 'eth_getStorageAt',
-  'eth_getTransactionByHash', 'eth_getTransactionReceipt',
-  'eth_getTransactionCount', 'eth_getBlockByNumber', 'eth_getBlockByHash',
-  'eth_syncing', 'eth_protocolVersion', 'eth_getLogs',
+  'eth_chainId',
+  'net_version',
+  'eth_blockNumber',
+  'eth_getBalance',
+  'eth_call',
+  'eth_estimateGas',
+  'eth_gasPrice',
+  'eth_feeHistory',
+  'eth_getCode',
+  'eth_getStorageAt',
+  'eth_getTransactionByHash',
+  'eth_getTransactionReceipt',
+  'eth_getTransactionCount',
+  'eth_getBlockByNumber',
+  'eth_getBlockByHash',
+  'eth_syncing',
+  'eth_protocolVersion',
+  'eth_getLogs',
 ]);
 
 if (READ_ONLY_PROXY_METHODS.has(method)) {
@@ -603,13 +646,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 chrome.runtime.sendMessage(SOVA_EXTENSION_ID, {
   type: 'dapp-event',
   event: 'accountsChanged',
-  data: ['0xATTACKER']
+  data: ['0xATTACKER'],
 });
 ```
 
 dApp получит фейковое `accountsChanged` событие.
 
 **Фикс:**
+
 ```js
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg !== 'object') return;
@@ -676,8 +720,10 @@ const chainMismatch = domainChainId !== null && domainChainId !== Number(current
 
 ```js
 if (chainMismatch) {
-  const e = new Error(`chainId mismatch: typed data is for chain ${domainChainId}, wallet is on ${currentChainId}. Switch network first.`);
-  e.code = 4901;  // Chain not configured
+  const e = new Error(
+    `chainId mismatch: typed data is for chain ${domainChainId}, wallet is on ${currentChainId}. Switch network first.`,
+  );
+  e.code = 4901; // Chain not configured
   throw e;
 }
 ```
@@ -700,9 +746,10 @@ await setLocal({ accounts, activeAccount: result.index });
 **Сценарий:** user добавил субаккаунт → `_accountsCache` всё ещё содержит старый список (без нового). Следующий клик «переключить аккаунт» в меню → `renderAccountMenu` читает кэш → новый аккаунт **отсутствует** в меню.
 
 **Фикс:**
+
 ```js
 await setLocal({ accounts, activeAccount: result.index });
-setAccountsCache(accounts);  // ← инвалидировать
+setAccountsCache(accounts); // ← инвалидировать
 ```
 
 ---
@@ -712,6 +759,7 @@ setAccountsCache(accounts);  // ← инвалидировать
 **Файл:** `extension/popup/popup.js` (десятки мест)
 
 Паттерн повторяется ~30 раз:
+
 ```js
 function showScreen(id) {
   if (typeof PopupUiState.showScreen === 'function') {
@@ -722,11 +770,13 @@ function showScreen(id) {
 ```
 
 **Проблема:**
+
 - **Модули всегда загружаются** (порядок в `popup.html`), поэтому fallback **никогда не выполняется**
 - При изменении логики нужно править в 2 местах → drift между fallback и module → багами фичи в одном из путей
 - Затрудняет аудит — приходится читать обе ветки
 
 **Фикс:**
+
 1. Удалить все fallback-блоки
 2. Добавить assertions в начале `DOMContentLoaded`:
    ```js
@@ -769,6 +819,7 @@ function showScreen(id) {
 **Проблема:** `https://*/*` нужна для content-script, но даёт расширению право делать `fetch()` на любой HTTPS URL, минуя CSP. Если в коде SW появится `fetch('https://attacker.com/...')` (намеренно или из-за supply chain compromise) — никакой защиты CSP это не остановит.
 
 **Фикс:** разделить content_scripts matches от host_permissions:
+
 - Для content_scripts оставить `https://*/*` (это нужно)
 - Из `host_permissions` УБРАТЬ `https://*/*` — оставить только реальные RPC хосты
 - В RUNTIME, если нужен `fetch` к новому хосту — запросить через `chrome.permissions.request({ origins: [...] })` интерактивно
@@ -780,12 +831,13 @@ function showScreen(id) {
 **Файл:** `extension/popup/popup.js:1657`
 
 ```js
-sendToSW({ type: 'reset-lock-timer' });  // ← НЕ await
+sendToSW({ type: 'reset-lock-timer' }); // ← НЕ await
 ```
 
 **Проблема:** fire-and-forget. Если SW не отвечает (умер), таймер не продлевается. Если user отправляет tx через 4 минуты после unlock'а, SW auto-lock срабатывает посреди confirmation flow, ключи обнуляются, send падает с `Wallet is locked`.
 
 **Фикс:**
+
 ```js
 const result = await sendToSW({ type: 'reset-lock-timer' });
 if (!result?.ok) {
@@ -827,6 +879,7 @@ if (!result?.ok) {
 `const _pendingApprovals = new Map();`
 
 Malicious dApp может в цикле:
+
 ```js
 for (let i = 0; i < 10000; i++) {
   ethereum.request({ method: 'eth_requestAccounts' });
@@ -836,6 +889,7 @@ for (let i = 0; i < 10000; i++) {
 Каждый запрос создаёт entry в Map (и опен popup window!) До полного DoS экранов user'а.
 
 **Фикс:**
+
 - Per-origin лимит: max 1 pending request per origin (если есть pending, новый отклонять с code `4001`)
 - Global лимит: max 20 pending requests total
 - Дедупликация: если приходит идентичный method+params для того же origin — использовать существующий promise
@@ -843,8 +897,11 @@ for (let i = 0; i < 10000; i++) {
 ```js
 function findExistingApproval(origin, method, params) {
   for (const [id, entry] of _pendingApprovals.entries()) {
-    if (entry.origin === origin && entry.method === method &&
-        JSON.stringify(entry.params) === JSON.stringify(params)) {
+    if (
+      entry.origin === origin &&
+      entry.method === method &&
+      JSON.stringify(entry.params) === JSON.stringify(params)
+    ) {
       return entry;
     }
   }
@@ -865,11 +922,12 @@ const id = `appr-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 7 символов base36 = ~36 бит энтропии. С учётом известного timestamp, угадывание реально за разумное время через repeated `chrome.runtime.sendMessage`.
 
 **Фикс:**
+
 ```js
 function genApprovalId() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
-  return 'appr-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  return 'appr-' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 ```
 
@@ -891,6 +949,7 @@ async function checkFirstTimeRecipient(toAddress) {
 Если user отправил кому-то через **dApp A**, тот же recipient считается «known» когда отправляет через **dApp B** — даже если контекст совершенно другой и A и B не связаны. Также privacy leak: dApp B видит «нет warning» = знает что user знает recipient'а.
 
 **Фикс:** scoping `knownRecipients[origin][address]`:
+
 ```js
 const { knownRecipients = {} } = await ...;
 return !knownRecipients[origin]?.[String(toAddress).toLowerCase()];
@@ -914,6 +973,7 @@ return { ... };
 ```
 
 **Фикс:** explicit nullify:
+
 ```js
 const phrase = main.mnemonic.phrase;
 const newWallet = ethers.HDNodeWallet.fromPhrase(phrase, null, `m/44'/60'/0'/0/${nextIdx}`);
@@ -932,6 +992,7 @@ return { address: newWallet.address, keystore, index: nextIdx };
 User может connect / disconnect к 1000+ dApp'ов. Каждый origin копится в `connectedOrigins`. После года использования — мегабайты в storage.
 
 **Фикс:**
+
 - Лимит 100 origin'ов
 - LRU eviction по `lastUsedAt`
 - TTL: автоматически удалять записи старше 90 дней
@@ -950,6 +1011,7 @@ while (auditLog.length > 1000) auditLog.shift();
 Хорошо, что cap есть. Но 1000 записей × ~200 байт = 200KB. Это близко к лимиту `chrome.storage.local` (5MB суммарно для всего storage). Если user активный — может вытеснять более важные данные.
 
 **Фикс:**
+
 - Уменьшить cap до 500
 - Записи старше 30 дней — автоматически удалять при следующей записи
 
@@ -960,18 +1022,25 @@ while (auditLog.length > 1000) auditLog.shift();
 **Файл:** `extension/popup/popup.js:901-919`
 
 ```js
-iconImg.src = logoUrls[logoIndex++];  // ← если CDN зависает, image hang'ается
-iconImg.addEventListener('error', tryNextLogo);  // только на error
+iconImg.src = logoUrls[logoIndex++]; // ← если CDN зависает, image hang'ается
+iconImg.addEventListener('error', tryNextLogo); // только на error
 ```
 
 **Фикс:**
+
 ```js
 const TIMEOUT_MS = 3000;
 let timer;
 const cleanup = () => clearTimeout(timer);
 iconImg.addEventListener('load', cleanup);
-iconImg.addEventListener('error', () => { cleanup(); tryNextLogo(); });
-timer = setTimeout(() => { cleanup(); tryNextLogo(); }, TIMEOUT_MS);
+iconImg.addEventListener('error', () => {
+  cleanup();
+  tryNextLogo();
+});
+timer = setTimeout(() => {
+  cleanup();
+  tryNextLogo();
+}, TIMEOUT_MS);
 iconImg.src = logoUrls[logoIndex++];
 ```
 
@@ -988,6 +1057,7 @@ return raw.split(',').map(part => ...);  // ← наивный split
 Строки вида `data-onclick="showError('Ошибка, не повезло')"` парсятся неправильно. Сейчас в HTML таких нет — но это **бомба замедленного действия** на следующий рефакторинг.
 
 **Фикс:** написать proper tokenizer (стейт-машина с учётом кавычек):
+
 ```js
 function parseArgs(argsRaw, event) {
   const tokens = [];
@@ -1008,7 +1078,7 @@ function parseArgs(argsRaw, event) {
     }
   }
   if (current.trim()) tokens.push(current.trim());
-  return tokens.map(t => parseToken(t, event));
+  return tokens.map((t) => parseToken(t, event));
 }
 ```
 
@@ -1020,17 +1090,21 @@ function parseArgs(argsRaw, event) {
 
 ```js
 const accounts = await getAccountsCached();
-loadWalletScreen(accounts[activeAccountIndex].address);  // ← если accounts[idx] undefined → крах
+loadWalletScreen(accounts[activeAccountIndex].address); // ← если accounts[idx] undefined → крах
 ```
 
 Если по какой-то причине `accounts` пустой или индекс невалиден — `loadWalletScreen(undefined)` → каскадный сбой.
 
 **Фикс:**
+
 ```js
 const accounts = await getAccountsCached();
 const acct = accounts[activeAccountIndex];
 if (!acct?.address) {
-  console.error('[popup] active account missing', { activeAccountIndex, accountsLen: accounts.length });
+  console.error('[popup] active account missing', {
+    activeAccountIndex,
+    accountsLen: accounts.length,
+  });
   showScreen('screen-setup');
   return;
 }
@@ -1053,14 +1127,27 @@ if (!amount || parseFloat(amount) <= 0) { showError(...); return; }
 `parseFloat('123abc') === 123` → парсит частично → confusing.
 
 **Фикс:**
+
 ```js
 const amountStr = document.getElementById('send-amount').value.trim();
-if (!amountStr) { showError('send', 'Введите сумму'); return; }
-if (!/^\d+(\.\d+)?$/.test(amountStr)) { showError('send', 'Некорректный формат'); return; }
+if (!amountStr) {
+  showError('send', 'Введите сумму');
+  return;
+}
+if (!/^\d+(\.\d+)?$/.test(amountStr)) {
+  showError('send', 'Некорректный формат');
+  return;
+}
 const amountNum = parseFloat(amountStr);
-if (!Number.isFinite(amountNum) || amountNum <= 0) { showError('send', 'Сумма должна быть > 0'); return; }
+if (!Number.isFinite(amountNum) || amountNum <= 0) {
+  showError('send', 'Сумма должна быть > 0');
+  return;
+}
 const wei = ethers.parseEther(amountStr);
-if (wei < 1n) { showError('send', 'Сумма меньше 1 wei'); return; }
+if (wei < 1n) {
+  showError('send', 'Сумма меньше 1 wei');
+  return;
+}
 ```
 
 ---
@@ -1072,6 +1159,7 @@ if (wei < 1n) { showError('send', 'Сумма меньше 1 wei'); return; }
 Один и тот же массив определён в двух местах. Изменение whitelist → надо править оба.
 
 **Фикс:** вынести в `extension/shared/rpc-hosts.js`:
+
 ```js
 globalThis.WolfWalletRpcHosts = Object.freeze([
   'eth-mainnet.g.alchemy.com',
@@ -1091,13 +1179,14 @@ globalThis.WolfWalletRpcHosts = Object.freeze([
 
 ```js
 if (!_isAlchemyUrl(activeUrl)) {
-  return { result: { transfers: [] } };  // ← молча
+  return { result: { transfers: [] } }; // ← молча
 }
 ```
 
 User переключился на publicnode.com → история транзакций исчезает. Без объяснения причины.
 
 **Фикс:** показать в UI tx-list блоке:
+
 ```js
 if (!_isAlchemyUrl(activeUrl)) {
   el.textContent = '';
@@ -1142,6 +1231,7 @@ const unlockRes = await sendUnlockRequest(request.targetAccountIndex, password);
 ```
 
 **Фикс:**
+
 ```js
 let password = pwInput.value;
 const unlockRes = await sendUnlockRequest(request.targetAccountIndex, password);
@@ -1160,6 +1250,7 @@ if (pwInput) pwInput.value = '';
 User может создать N субаккаунтов и unlock каждый — все wallet'ы аккумулируются в памяти SW. С учётом ethers.Wallet объекта (~10KB) — 100 subaccounts = 1MB в SW memory.
 
 **Фикс:** LRU cap:
+
 ```js
 const MAX_UNLOCKED_WALLETS = 20;
 function rememberUnlocked(walletKey, wallet) {
@@ -1320,6 +1411,7 @@ Malicious dApp может зарегистрировать 100k listeners. Memor
 ### 9.3 Origin validation полнота
 
 Origin validation есть, но фрагментарная:
+
 - ✅ `dapp-request` — проверяется
 - ❌ Все остальные internal messages — НЕ проверяются (CRIT-2)
 - ❌ content-script onMessage — НЕ проверяется (HIGH-2)
@@ -1340,6 +1432,7 @@ Origin validation есть, но фрагментарная:
 ### 9.5 Coverage тестами недавних изменений
 
 Из 30 тестовых файлов **ни один** не покрывает:
+
 - Inline unlock в approval popup
 - `wallet_revokePermissions` end-to-end
 - `eth_accounts` filtering by active wallet
@@ -1352,63 +1445,63 @@ Origin validation есть, но фрагментарная:
 
 ## 10. Статистика
 
-| Метрика | Значение |
-|---|---:|
-| Файлов в скоупе | 19 (extension) + 2 (site) + 30 (tests) |
-| Строк кода в скоупе | 8734 (JS+CSS+HTML) |
-| Найдено findings | **60** |
-| — CRITICAL | 5 |
-| — HIGH | 8 |
-| — MEDIUM | 17 |
-| — LOW | 15 |
-| — POSITIVE | 15 |
-| Оцененное время на полный фикс | **~80 часов** инженерной работы |
-| Оцененное время на CRITICAL фиксы | **~12 часов** |
+| Метрика                           |                               Значение |
+| --------------------------------- | -------------------------------------: |
+| Файлов в скоупе                   | 19 (extension) + 2 (site) + 30 (tests) |
+| Строк кода в скоупе               |                     8734 (JS+CSS+HTML) |
+| Найдено findings                  |                                 **60** |
+| — CRITICAL                        |                                      5 |
+| — HIGH                            |                                      8 |
+| — MEDIUM                          |                                     17 |
+| — LOW                             |                                     15 |
+| — POSITIVE                        |                                     15 |
+| Оцененное время на полный фикс    |        **~80 часов** инженерной работы |
+| Оцененное время на CRITICAL фиксы |                          **~12 часов** |
 
 ### Распределение по файлам
 
-| Файл | CRIT | HIGH | MED | LOW | Всего |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `service-worker.js` | 4 | 4 | 7 | 7 | **22** |
-| `popup.js` | 0 | 3 | 3 | 5 | **11** |
-| `dapp-approval.js` | 0 | 1 | 3 | 0 | **4** |
-| `inpage/provider.js` | 1 | 0 | 0 | 2 | **3** |
-| `content-script.js` | 0 | 1 | 0 | 0 | **1** |
-| `manifest.json` | 0 | 1 | 2 | 0 | **3** |
-| `network-config.js` | 1 | 0 | 0 | 0 | **1** |
-| `event-binder.js` | 0 | 0 | 1 | 0 | **1** |
-| `tx-history.js` | 0 | 0 | 1 | 0 | **1** |
-| `popup-modules` (other) | 0 | 1 | 1 | 0 | **2** |
+| Файл                    | CRIT | HIGH | MED | LOW | Всего  |
+| ----------------------- | :--: | :--: | :-: | :-: | :----: |
+| `service-worker.js`     |  4   |  4   |  7  |  7  | **22** |
+| `popup.js`              |  0   |  3   |  3  |  5  | **11** |
+| `dapp-approval.js`      |  0   |  1   |  3  |  0  | **4**  |
+| `inpage/provider.js`    |  1   |  0   |  0  |  2  | **3**  |
+| `content-script.js`     |  0   |  1   |  0  |  0  | **1**  |
+| `manifest.json`         |  0   |  1   |  2  |  0  | **3**  |
+| `network-config.js`     |  1   |  0   |  0  |  0  | **1**  |
+| `event-binder.js`       |  0   |  0   |  1  |  0  | **1**  |
+| `tx-history.js`         |  0   |  0   |  1  |  0  | **1**  |
+| `popup-modules` (other) |  0   |  1   |  1  |  0  | **2**  |
 
 `service-worker.js` — самый «горячий» файл по числу находок, что ожидаемо: он одновременно (а) критичен по security, (б) самый большой по строкам, (в) недавно вырос на ~900 строк за счёт dApp dispatcher.
 
 ### Распределение по категориям
 
-| Категория | Findings |
-|---|:---:|
-| Sender/origin validation | 7 |
-| In-memory state не переживает SW restart | 5 |
-| `innerHTML` / DOM XSS surface | 4 |
-| Нет лимитов / DoS protection | 6 |
-| Race conditions / async safety | 5 |
-| Type/input validation | 6 |
-| Hardcoded secrets / credentials | 1 |
-| CSP / permissions слишком broad | 4 |
-| Dead code / monolith | 3 |
-| Documentation drift | 5 |
-| Test coverage gaps | 6 |
-| Прочее (logs, UX, style) | 8 |
+| Категория                                | Findings |
+| ---------------------------------------- | :------: |
+| Sender/origin validation                 |    7     |
+| In-memory state не переживает SW restart |    5     |
+| `innerHTML` / DOM XSS surface            |    4     |
+| Нет лимитов / DoS protection             |    6     |
+| Race conditions / async safety           |    5     |
+| Type/input validation                    |    6     |
+| Hardcoded secrets / credentials          |    1     |
+| CSP / permissions слишком broad          |    4     |
+| Dead code / monolith                     |    3     |
+| Documentation drift                      |    5     |
+| Test coverage gaps                       |    6     |
+| Прочее (logs, UX, style)                 |    8     |
 
 ---
 
 ## 11. Связь с предыдущими отчётами
 
-| Документ | Связь |
-|---|---|
-| `RECOMMENDATIONS.md` (от 2026-04-07) | Перекрытие ~30%. Многие пункты подтверждены этим аудитом. Некоторые помечены как DONE (dApp connect, notifications fix), некоторые **остались блокерами** (Alchemy key) |
-| `INC-2026-03-29-wallet-theft/incident-report.md` | Hardening recommendations §7 не реализованы — этот аудит подтверждает их актуальность |
-| `tests/test-plan-2.md` | Gap analysis от 2026-03-29 актуален: ~55% coverage. Этот аудит выявил **новые** gap'ы (dApp features), которые должны быть добавлены |
-| `extension/optimization-plan.md` | Заявляет «всё завершено», но монолитность popup.js **подтверждена** этим аудитом — рефакторинг продолжается быть нужным |
+| Документ                                         | Связь                                                                                                                                                                   |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RECOMMENDATIONS.md` (от 2026-04-07)             | Перекрытие ~30%. Многие пункты подтверждены этим аудитом. Некоторые помечены как DONE (dApp connect, notifications fix), некоторые **остались блокерами** (Alchemy key) |
+| `INC-2026-03-29-wallet-theft/incident-report.md` | Hardening recommendations §7 не реализованы — этот аудит подтверждает их актуальность                                                                                   |
+| `tests/test-plan-2.md`                           | Gap analysis от 2026-03-29 актуален: ~55% coverage. Этот аудит выявил **новые** gap'ы (dApp features), которые должны быть добавлены                                    |
+| `extension/optimization-plan.md`                 | Заявляет «всё завершено», но монолитность popup.js **подтверждена** этим аудитом — рефакторинг продолжается быть нужным                                                 |
 
 ---
 
@@ -1421,6 +1514,7 @@ Origin validation есть, но фрагментарная:
 ### Что плохо
 
 **Defense-in-depth слабый.** При обнаружении любой одной уязвимости — компенсирующих контролей нет:
+
 - Если sender validation добавляется (CRIT-2), это закрывает множество других потенциальных багов
 - Если bruteforce protection persistent (CRIT-3), это закрывает физический attack vector
 - Если CSP узкая — XSS surface уменьшается даже если innerHTML остаётся
@@ -1428,6 +1522,7 @@ Origin validation есть, но фрагментарная:
 ### Что критично
 
 **5 CRITICAL находок должны быть исправлены до публикации в Chrome Web Store.** Без этого:
+
 - Alchemy key утечёт
 - Любой malicious dApp в браузере жертвы может обходить approval flow
 - Bruteforce password — реальная угроза

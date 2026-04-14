@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SOVA Bank — DeFi Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="css/bank.css?v=3"/>
+
+
+</head>
+<body>
+
+<!-- ── Background ── -->
+<div class="bg-layer" aria-hidden="true"></div>
+
+<div class="app">
+<div class="shell">
+
+<!-- ════════════════════════════════════════════════════════════════
+     HEADER
+     ════════════════════════════════════════════════════════════════ -->
+<header>
+  <a class="logo-wrap" href="#">
+    <svg class="logo-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="SOVA Bank">
+      <defs>
+        <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <ellipse cx="20" cy="23" rx="11" ry="12" fill="url(#lg1)" opacity="0.12"/><ellipse cx="20" cy="23" rx="11" ry="12" stroke="url(#lg1)" stroke-width="1.4" fill="none"/>
+      <ellipse cx="20" cy="14" rx="9" ry="8" fill="url(#lg1)" opacity="0.1"/><ellipse cx="20" cy="14" rx="9" ry="8" stroke="url(#lg1)" stroke-width="1.4" fill="none"/>
+      <path d="M13 9.5 L11 5 L15.5 8.5" stroke="url(#lg1)" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+      <path d="M27 9.5 L29 5 L24.5 8.5" stroke="url(#lg1)" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+      <circle cx="16" cy="14" r="3.2" stroke="url(#lg1)" stroke-width="1.4" fill="none"/>
+      <circle cx="24" cy="14" r="3.2" stroke="url(#lg1)" stroke-width="1.4" fill="none"/>
+      <circle cx="16" cy="14" r="1.3" fill="#818cf8" filter="url(#glow)"/>
+      <circle cx="24" cy="14" r="1.3" fill="#60a5fa" filter="url(#glow)"/>
+      <path d="M18.5 17.2 L20 19.2 L21.5 17.2" fill="url(#lg1)" opacity="0.85"/>
+      <path d="M9 25.5 Q5.5 21 9 18.5" stroke="url(#lg1)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+      <path d="M31 25.5 Q34.5 21 31 18.5" stroke="url(#lg1)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="logo-text">SOVA Bank</div>
+      <div class="logo-sub">DEFI TERMINAL v3</div>
+    </div>
+  </a>
+  <div class="hdr-right">
+    <button class="theme-btn" id="theme-btn" title="Toggle theme" aria-label="Toggle theme">
+      <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    </button>
+    <button class="btn-pill" id="lang-btn" type="button">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/></svg>
+      <span id="lang-label">RU</span>
+    </button>
+    <div class="status-tag ok" id="conn-badge">
+      <span class="status-dot"></span>
+      <span id="conn-text">Connected</span>
+    </div>
+  </div>
+</header>
+
+<div class="topbar e1" id="acct-net">
+  <!-- Wallet selector -->
+  <div class="wallet-list" id="wallet-list">
+    <button type="button" class="wallet-item selected">
+      <svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#3b82f6" opacity="0.15"/><circle cx="10" cy="10" r="9" stroke="#3b82f6" stroke-width="1" fill="none"/><text x="10" y="13.5" font-size="8" font-weight="700" fill="#60a5fa" text-anchor="middle" font-family="monospace">S</text></svg>
+      SOVA
+    </button>
+    <button type="button" class="wallet-item">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/32px-MetaMask_Fox.svg.png" alt="" style="width:14px;height:14px;" />MetaMask
+    </button>
+    <button type="button" class="wallet-item">
+      <svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="none" stroke="#3b82f6" stroke-width="1.5"/><text x="12" y="15.5" font-size="7" fill="#60a5fa" text-anchor="middle" font-family="monospace">WC</text></svg>
+      WC
+    </button>
+  </div>
+
+  <div style="width:1px;height:20px;background:var(--b1);margin:0 2px;flex-shrink:0;"></div>
+
+  <!-- Account -->
+  <button type="button" class="acct-btn" id="account-badge" title="">
+    <div class="acct-avatar" id="acct-avatar"></div>
+    <span class="acct-addr" id="ab-addr">—</span>
+    <span class="acct-switch">↻</span>
+  </button>
+
+  <!-- Network -->
+  <div class="net-picker" id="net-picker">
+    <button class="net-trigger" id="net-trigger" data-alt-id="net-picker-trigger">
+      <span class="net-dot" id="net-dot" style="background:#627eea;color:#627eea"></span>
+      <span id="net-label">Ethereum</span>
+      <span class="net-caret" id="net-caret"></span>
+    </button>
+    <div class="net-menu" id="net-menu" role="listbox">
+      <button class="net-opt active" data-chain="0x1" role="option">
+        <span style="display:flex;align-items:center;gap:7px;"><span class="net-dot" style="background:#627eea;color:#627eea"></span>Ethereum</span>
+        <span class="net-opt-tag">mainnet</span>
+      </button>
+      <button class="net-opt" data-chain="0xaa36a7" role="option">
+        <span style="display:flex;align-items:center;gap:7px;"><span class="net-dot" style="background:#9b59b6;color:#9b59b6"></span>Sepolia</span>
+        <span class="net-opt-tag">testnet</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Gas + ETH price -->
+  <div style="display:flex;align-items:center;gap:4px;padding:4px 9px;background:var(--s1);border:1px solid var(--b0);border-radius:var(--r2);margin-left:2px;">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/><circle cx="9" cy="19" r="1"/><circle cx="19" cy="19" r="1"/></svg>
+    <span class="text-mono" style="font-size:10px;color:var(--warn);">24</span>
+    <span class="text-mono" style="font-size:9px;color:var(--t3);">gwei</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:4px;padding:4px 9px;background:var(--s1);border:1px solid var(--b0);border-radius:var(--r2);">
+    <span class="text-mono" style="font-size:10px;color:var(--t2);">ETH</span>
+    <span class="text-mono" style="font-size:10px;color:var(--t0);font-weight:700;">$3,501</span>
+  </div>
+
+  <!-- Connect/Disconnect -->
+  <div class="row ml-auto" style="gap:5px;">
+    <button class="btn btn-primary btn-sm" id="btn-connect">Connect</button>
+    <button class="btn btn-ghost btn-sm" id="btn-disconnect">Disconnect</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PORTFOLIO SUMMARY
+     ════════════════════════════════════════════════════════════════ -->
+<div class="portfolio-bar e3" id="summary-bar">
+  <div class="pf-item">
+    <div class="pf-label">Wallet</div>
+    <div class="pf-val" id="sum-wallet">—</div>
+    <div class="pf-sub" id="sum-wallet-sub"></div>
+  </div>
+  <div class="pf-item">
+    <div class="pf-label">AAVE Deposits</div>
+    <div class="pf-val" id="sum-aave">—</div>
+    <div class="pf-sub" id="sum-aave-sub"></div>
+  </div>
+  <div class="pf-item" id="sum-lido-item">
+    <div class="pf-label">Lido Staked</div>
+    <div class="pf-val" id="sum-lido">—</div>
+    <div class="pf-sub" id="sum-lido-sub"></div>
+  </div>
+  <div class="pf-item">
+    <div class="pf-label">Uni V3 LP</div>
+    <div class="pf-val" id="sum-lp">—</div>
+    <div class="pf-sub" id="sum-lp-sub"></div>
+  </div>
+  <div class="pf-item" style="border-left:2px solid var(--a);">
+    <div class="pf-label">Total Portfolio</div>
+    <div class="pf-val" id="sum-total" style="color:var(--t0);font-size:18px;font-weight:700;">—</div>
+    <div class="pf-sub" id="sum-total-sub"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TABS
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-bar e4" id="tab-bar" role="tablist">
+  <button class="tab-btn active" data-tab="balance" role="tab"><span class="tab-icon">◈</span>Balance</button>
+  <button class="tab-btn" data-tab="aave" role="tab"><span class="tab-icon">⬡</span>AAVE</button>
+  <button class="tab-btn" data-tab="swap" role="tab"><span class="tab-icon">⇌</span>Swap</button>
+  <button class="tab-btn" data-tab="lido" role="tab"><span class="tab-icon">◎</span>Lido</button>
+  <button class="tab-btn" data-tab="liquidity" role="tab"><span class="tab-icon">⬦</span>Liquidity</button>
+  <button class="tab-btn" data-tab="history" role="tab"><span class="tab-icon">≡</span>History</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     BALANCE TAB
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="panel-balance">
+  <div class="bal-grid">
+    <!-- ETH -->
+    <div class="bal-card">
+      <div class="tk-row">
+        <img class="tk-ico" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png" alt=""/>
+        <div><div class="tk-name">ETH</div><div class="tk-chain">Ethereum</div></div>
+      </div>
+      <div class="bal-num" id="bal-eth">—</div>
+      <div class="bal-usd" id="bal-eth-usd"></div>
+      <div class="bal-protocol-row">
+        <span class="bal-proto-lbl"><img src="https://app.aave.com/icons/tokens/aave.svg" style="width:12px;height:12px;border-radius:50%;" alt=""/>AAVE</span>
+        <span class="bal-proto-val" id="dep-eth"></span>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:5px;flex-wrap:wrap;">
+        <span class="apy-badge" id="apy-eth"></span>
+      </div>
+    </div>
+    <!-- USDC -->
+    <div class="bal-card">
+      <div class="tk-row">
+        <img class="tk-ico" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png" alt=""/>
+        <div><div class="tk-name">USDC</div><div class="tk-chain">Ethereum</div></div>
+      </div>
+      <div class="bal-num" id="bal-usdc">—</div>
+      <div class="bal-usd" id="bal-usdc-usd"></div>
+      <div class="bal-protocol-row">
+        <span class="bal-proto-lbl"><img src="https://app.aave.com/icons/tokens/aave.svg" style="width:12px;height:12px;border-radius:50%;" alt=""/>AAVE</span>
+        <span class="bal-proto-val" id="dep-usdc"></span>
+      </div>
+      <div style="margin-top:8px;"><span class="apy-badge" id="apy-usdc"></span></div>
+    </div>
+    <!-- USDT -->
+    <div class="bal-card">
+      <div class="tk-row">
+        <img class="tk-ico" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png" alt=""/>
+        <div><div class="tk-name">USDT</div><div class="tk-chain">Ethereum</div></div>
+      </div>
+      <div class="bal-num" id="bal-usdt">—</div>
+      <div class="bal-usd" id="bal-usdt-usd"></div>
+      <div class="bal-protocol-row">
+        <span class="bal-proto-lbl">AAVE</span>
+        <span class="bal-proto-val" id="dep-usdt"></span>
+      </div>
+      <div style="margin-top:8px;"><span class="apy-badge" id="apy-usdt"></span></div>
+    </div>
+    <!-- wstETH / stETH -->
+    <div class="bal-card" id="bal-card-steth" style="display:none">
+      <div class="tk-row">
+        <img class="tk-ico" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0/logo.png" alt="" onerror="this.src='https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png'"/>
+        <div><div class="tk-name">wstETH</div><div class="tk-chain">Lido</div></div>
+      </div>
+      <div class="bal-num" id="bal-steth">—</div>
+      <div class="bal-usd" id="bal-steth-usd"></div>
+      <div class="bal-protocol-row">
+        <span class="bal-proto-lbl">wstETH</span>
+        <span class="bal-proto-val" id="bal-wsteth-dep"></span>
+      </div>
+      <div style="margin-top:8px;"><span class="apy-badge green" id="apy-lido"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     AAVE TAB
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-aave">
+  <div id="aave-unsupported" class="result err" style="display:none;margin-bottom:12px;">AAVE is not available for this network.</div>
+  <div id="aave-ui">
+  <!-- Health Factor + Stats -->
+  <div class="card card-glow" style="margin-bottom:12px;">
+    <div class="card-head">
+      <img src="https://app.aave.com/icons/tokens/aave.svg" alt=""/>
+      AAVE Position
+    </div>
+    <div style="display:grid;grid-template-columns:140px 1fr;gap:16px;align-items:start;overflow:hidden;">
+      <!-- Health Factor Gauge -->
+      <div class="hf-gauge-wrap" style="min-width:140px;">
+        <div class="hf-gauge">
+          <svg viewBox="0 0 120 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Track arc -->
+            <path d="M10 65 A55 55 0 0 1 110 65" stroke="#1c1c3e" stroke-width="10" stroke-linecap="round" fill="none"/>
+            <!-- Gradient arc - danger zone -->
+            <path d="M10 65 A55 55 0 0 1 42 15" stroke="#ef4444" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.4"/>
+            <!-- Gradient arc - warn zone -->
+            <path d="M42 15 A55 55 0 0 1 78 15" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.4"/>
+            <!-- Gradient arc - safe zone -->
+            <path d="M78 15 A55 55 0 0 1 110 65" stroke="#10b981" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.4"/>
+            <!-- Active fill — 2.45 (safe, ~78% of arc) -->
+            <path id="hf-arc" d="M10 65 A55 55 0 0 1 104 28" stroke="url(#hf-grad)" stroke-width="10" stroke-linecap="round" fill="none"/>
+            <defs>
+              <linearGradient id="hf-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ef4444"/>
+                <stop offset="40%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#10b981"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="hf-number hf-safe" id="hf-number">—</div>
+        </div>
+        <div class="hf-label">Health Factor</div>
+        <div style="font-family:var(--fm);font-size:10px;margin-top:2px;" id="hf-status">—</div>
+      </div>
+      <!-- Stats -->
+      <div>
+        <div class="stat-row"><span class="stat-lbl">Total Supplied</span><span class="stat-val" id="aave-total-supplied">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">Total Borrowed</span><span class="stat-val text-warn" id="aave-total-borrowed">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">Net APY</span><span class="stat-val text-ok" id="aave-net-apy">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">Available to Borrow</span><span class="stat-val" id="aave-available-borrow">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">LTV</span><span class="stat-val" id="aave-ltv">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplied positions with collateral toggles -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Supplied Assets
+      <div class="badge-tag" style="font-size:9px;">Collateral</div>
+    </div>
+    <div class="collateral-list" id="aave-collateral-list">
+      <!-- Populated dynamically by loadAavePosition() -->
+    </div>
+  </div>
+
+  <!-- Deposit / Withdraw -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head">
+        <img src="https://app.aave.com/icons/tokens/aave.svg" alt=""/>
+        Deposit
+        <div class="badge-tag">APY 2.14%</div>
+      </div>
+      <div class="stack">
+        <div class="token-seg" id="deposit-token-select">
+          <button class="active" data-token="ETH"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png" alt=""/>ETH</button>
+          <button data-token="USDC"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png" alt=""/>USDC</button>
+          <button data-token="USDT"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png" alt=""/>USDT</button>
+        </div>
+        <div class="field">
+          <span class="field-label">Amount</span>
+          <div class="amount-wrap"><input id="deposit-amount" type="text" placeholder="0.0" autocomplete="off"/><button class="btn-max" id="deposit-max-btn">MAX</button></div>
+          <div class="input-error" id="deposit-error"></div>
+        </div>
+        <div class="steps" id="deposit-progress" style="display:none"></div>
+        <div id="deposit-allowance-info" style="display:none;font-family:var(--fm);font-size:10px;color:var(--t2);margin-bottom:4px;"></div>
+        <button class="btn btn-primary btn-full" id="btn-deposit">Deposit</button>
+        <div class="result" id="deposit-result">—</div>
+        <span class="apy-badge" id="deposit-apy-badge"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <img src="https://app.aave.com/icons/tokens/aave.svg" alt=""/>
+        Withdraw
+      </div>
+      <div class="stack">
+        <div class="token-seg" id="withdraw-token-select">
+          <button class="active" data-token="ETH"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png" alt=""/>ETH</button>
+          <button data-token="USDC"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png" alt=""/>USDC</button>
+        </div>
+        <div class="field">
+          <span class="field-label">Amount</span>
+          <div class="amount-wrap"><input id="withdraw-amount" type="text" placeholder="0.0 or MAX" autocomplete="off"/><button class="btn-max" id="withdraw-max-btn">MAX</button></div>
+        </div>
+        <div class="stat-row"><span class="stat-lbl">Available</span><span class="stat-val text-ok" id="aave-withdraw-available">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">Current APY</span><span class="stat-val text-accent" id="aave-withdraw-apy">—</span></div>
+        <div class="steps" id="withdraw-progress" style="display:none"></div>
+        <button class="btn btn-primary btn-full" id="btn-withdraw">Withdraw</button>
+        <div class="result" id="withdraw-result">—</div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /aave-ui -->
+</div><!-- /panel-aave -->
+
+<!-- ════════════════════════════════════════════════════════════════
+     SWAP TAB
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-swap">
+  <div id="swap-mainnet-only" class="result err" style="display:none;margin-bottom:12px;">Swaps are only available on Ethereum Mainnet.</div>
+  <div id="swap-ui">
+  <div class="swap-outer">
+    <!-- Settings row -->
+    <div class="row" style="margin-bottom:10px;justify-content:flex-end;gap:6px;">
+      <button class="btn-pill active" id="slip-05">0.5%</button>
+      <button class="btn-pill" id="slip-10">1.0%</button>
+      <button class="btn-pill" id="slip-auto">Auto</button>
+      <button class="btn-pill" id="swap-settings-toggle" style="margin-left:4px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>
+        Settings
+      </button>
+    </div>
+
+    <!-- Settings panel (hidden by default) -->
+    <div id="swap-settings-panel" style="display:none;margin-bottom:12px;padding:14px;background:var(--s1);border:1px solid var(--b0);border-radius:var(--r3);">
+      <div class="stat-row"><span class="stat-lbl">Custom slippage</span>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" id="swap-custom-slippage" style="width:70px;padding:6px 8px;font-size:12px;" placeholder="0.5" step="0.1" min="0.01" max="50"/>
+          <span style="font-family:var(--fm);font-size:11px;color:var(--t2);">%</span>
+        </div>
+      </div>
+      <div class="stat-row"><span class="stat-lbl">TX deadline</span>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" id="swap-deadline" style="width:70px;padding:6px 8px;font-size:12px;" value="30" min="1" max="180"/>
+          <span style="font-family:var(--fm);font-size:11px;color:var(--t2);">min</span>
+        </div>
+      </div>
+      <div class="stat-row"><span class="stat-lbl">Fee tier</span>
+        <div style="display:flex;gap:4px;" id="swap-fee-tier-select">
+          <button class="btn-pill" data-fee="500" style="padding:3px 8px;font-size:10px;">0.05%</button>
+          <button class="btn-pill active" data-fee="3000" style="padding:3px 8px;font-size:10px;">0.3%</button>
+          <button class="btn-pill" data-fee="10000" style="padding:3px 8px;font-size:10px;">1%</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="swap-card">
+      <!-- From -->
+      <div class="swap-field">
+        <div class="swap-field-label">You pay</div>
+        <div class="swap-row">
+          <input class="swap-amount" id="swap-amount" type="text" placeholder="0.0" autocomplete="off"/>
+          <select id="swap-from" style="display:none"><option value="ETH">ETH</option><option value="USDC">USDC</option><option value="USDT">USDT</option></select>
+          <div class="swap-token-pick" id="swap-from-btn" style="position:relative;cursor:pointer;">
+            <img id="swap-from-icon" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png" alt="" style="width:20px;height:20px;border-radius:50%;"/>
+            <span id="swap-from-label">ETH</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="swap-token-dropdown" id="swap-from-dropdown" style="display:none;">
+              <button data-token="ETH" data-icon="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png">ETH</button>
+              <button data-token="USDC" data-icon="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png">USDC</button>
+              <button data-token="USDT" data-icon="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png">USDT</button>
+            </div>
+          </div>
+        </div>
+        <div class="swap-bal" id="swap-from-bal"></div>
+      </div>
+
+      <!-- Separator + flip -->
+      <div class="swap-sep">
+        <button class="swap-flip-btn" id="swap-flip-btn">↕</button>
+      </div>
+
+      <!-- To -->
+      <div class="swap-field" style="border-top:none;">
+        <div class="swap-field-label">You receive</div>
+        <div class="swap-row">
+          <input class="swap-amount" id="swap-receive" type="text" placeholder="—" readonly/>
+          <select id="swap-to" style="display:none"><option value="USDC">USDC</option><option value="ETH">ETH</option><option value="USDT">USDT</option></select>
+          <div class="swap-token-pick" id="swap-to-btn" style="position:relative;cursor:pointer;">
+            <img id="swap-to-icon" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png" alt="" style="width:20px;height:20px;border-radius:50%;"/>
+            <span id="swap-to-label">USDC</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="swap-token-dropdown" id="swap-to-dropdown" style="display:none;">
+              <button data-token="ETH" data-icon="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png">ETH</button>
+              <button data-token="USDC" data-icon="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png">USDC</button>
+              <button data-token="USDT" data-icon="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png">USDT</button>
+            </div>
+          </div>
+        </div>
+        <div class="swap-usd" id="swap-to-usd"></div>
+      </div>
+
+      <!-- Route -->
+      <div class="swap-details" style="padding-top:10px;padding-bottom:6px;">
+        <div style="font-family:var(--fm);font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Best route</div>
+        <div class="route-viz">
+          <span class="route-node" id="route-from">ETH</span>
+          <span class="route-arrow">→</span>
+          <span style="font-size:10px;color:var(--t2);" id="route-pool">Uniswap V3 (0.30%)</span>
+          <span class="route-arrow">→</span>
+          <span class="route-node" id="route-to">USDC</span>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="swap-details" id="swap-details" style="display:none">
+        <div class="sd-row"><span>Rate</span><span class="sd-val" id="sd-rate">â</span></div>
+        <div class="sd-row"><span>Min received</span><span class="sd-val" id="sd-min">â</span></div>
+        <div class="sd-row"><span>Slippage</span><span class="sd-val text-ok" id="sd-slippage">0.5%</span></div>
+      </div>
+      <div class="swap-footer">
+        <div class="steps" id="swap-progress" style="display:none"></div>
+        <button class="btn btn-primary btn-full" id="btn-swap" disabled style="font-size:14px;padding:13px;">Swap</button>
+        <div class="result" id="swap-result" style="margin-top:8px;">—</div>
+      </div>
+    </div>
+  </div><!-- /swap-outer -->
+  </div><!-- /swap-ui -->
+</div><!-- /panel-swap -->
+
+<!-- ════════════════════════════════════════════════════════════════
+     LIDO TAB
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-lido">
+  <div id="lido-unsupported" class="result err" style="display:none;margin-bottom:12px;">Lido is not available for this network.</div>
+  <div id="lido-ui">
+  <div class="two-col">
+    <!-- ═════ LEFT: STAKE ETH ═════ -->
+    <div class="stack">
+      <div class="card card-glow">
+        <div class="card-head">
+          <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84/logo.png" alt=""/>
+          Stake ETH
+          <div class="badge-tag" id="lido-apr-badge">APR —</div>
+        </div>
+
+        <!-- Position overview -->
+        <div class="lido-stats">
+          <div class="lido-stat">
+            <div class="lido-stat-lbl">stETH Balance</div>
+            <div class="lido-stat-val cyan" id="lido-steth-bal">0</div>
+          </div>
+          <div class="lido-stat">
+            <div class="lido-stat-lbl">wstETH Balance</div>
+            <div class="lido-stat-val cyan" id="lido-wsteth-bal">0</div>
+          </div>
+          <div class="lido-stat">
+            <div class="lido-stat-lbl">APR</div>
+            <div class="lido-stat-val green" id="lido-apr-stat">—</div>
+          </div>
+        </div>
+
+        <!-- APR sparkline chart -->
+        <div class="apr-chart-wrap">
+          <div class="apr-chart-title">
+            <span>APR (30 days)</span>
+            <span style="color:var(--ok);" id="lido-apr-chart-val">—</span>
+          </div>
+          <svg viewBox="0 0 280 60" preserveAspectRatio="none" height="50">
+            <defs>
+              <linearGradient id="apr-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#60a5fa" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0 40 L10 38 L20 42 L30 35 L40 38 L50 32 L60 34 L70 30 L80 33 L90 28 L100 31 L110 26 L120 29 L130 25 L140 27 L150 23 L160 26 L170 22 L180 25 L190 20 L200 23 L210 19 L220 22 L230 18 L240 21 L250 17 L260 20 L270 16 L280 18" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M0 40 L10 38 L20 42 L30 35 L40 38 L50 32 L60 34 L70 30 L80 33 L90 28 L100 31 L110 26 L120 29 L130 25 L140 27 L150 23 L160 26 L170 22 L180 25 L190 20 L200 23 L210 19 L220 22 L230 18 L240 21 L250 17 L260 20 L270 16 L280 18 L280 60 L0 60Z" fill="url(#apr-grad)"/>
+          </svg>
+        </div>
+
+        <!-- Rewards calculator -->
+        <div class="rewards-calc" style="margin-top:8px;">
+          <div class="rewards-calc-title" id="lido-rewards-title">Projected rewards</div>
+          <div class="rewards-grid">
+            <div class="rewards-period"><div class="rp-lbl">Daily</div><div class="rp-val" id="rc-daily">—</div></div>
+            <div class="rewards-period"><div class="rp-lbl">Weekly</div><div class="rp-val" id="rc-weekly">—</div></div>
+            <div class="rewards-period"><div class="rp-lbl">Monthly</div><div class="rp-val" id="rc-monthly">—</div></div>
+            <div class="rewards-period"><div class="rp-lbl">Yearly</div><div class="rp-val" id="rc-yearly">—</div></div>
+          </div>
+        </div>
+
+        <!-- Stake input -->
+        <div class="stack" style="margin-top:10px;">
+          <div class="field">
+            <span class="field-label">ETH to stake</span>
+            <div class="amount-wrap"><input type="text" placeholder="0.0" id="lido-stake-amount" autocomplete="off"/><button class="btn-max" id="lido-stake-max-btn">MAX</button></div>
+            <div id="lido-stake-error" class="field-note" style="color:var(--c);">≈ 0 stETH</div>
+          </div>
+          <!-- Option: auto-wrap -->
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;background:var(--s1);border:1px solid var(--b0);border-radius:var(--r2);">
+            <input type="checkbox" id="auto-wrap-check" style="accent-color:var(--a);width:14px;height:14px;cursor:pointer;"/>
+            <span style="font-family:var(--fm);font-size:11px;color:var(--t1);">Auto-wrap в wstETH</span>
+            <span style="font-family:var(--fm);font-size:9px;color:var(--t3);margin-left:auto;">для DeFi</span>
+          </label>
+          <div class="steps" id="lido-stake-progress" style="display:none"></div>
+          <button class="btn btn-primary btn-full" id="btn-lido-stake">Stake ETH</button>
+          <div class="result" id="lido-stake-result">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ RIGHT: UNSTAKE + ADVANCED ═════ -->
+    <div class="stack">
+      <div class="card">
+        <div class="card-head">
+          <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84/logo.png" alt=""/>
+          Unstake
+        </div>
+        <div class="stack">
+          <div class="field">
+            <span class="field-label">stETH to unstake</span>
+            <div class="amount-wrap"><input type="text" placeholder="0.0" id="lido-withdraw-amount" autocomplete="off"/><button class="btn-max" id="lido-withdraw-max">MAX</button></div>
+            <div class="field-note">~1–5 days · ETH received directly</div>
+          </div>
+          <div class="stat-row"><span class="stat-lbl">Available</span><span class="stat-val" style="color:var(--c);" id="lido-unstake-available">—</span></div>
+          <div class="stat-row"><span class="stat-lbl">Exchange rate</span><span class="stat-val" id="lido-exchange-rate">—</span></div>
+          <div class="steps" id="lido-withdraw-progress" style="display:none"></div>
+          <button class="btn btn-primary btn-full" id="btn-lido-request-withdraw">Request Unstake</button>
+          <div class="result" id="lido-withdraw-result">â</div>
+
+          <!-- Pending withdrawals -->
+          <div class="divider" style="margin:6px 0;"></div>
+          <div style="font-family:var(--fm);font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Withdrawal Queue</div>
+          <div class="wd-list" id="lido-withdrawal-list">
+            <!-- Populated dynamically by loadWithdrawalRequests() -->
+          </div>
+          <button class="btn btn-primary btn-full" id="btn-lido-claim" style="display:none;background:var(--ok);margin-top:8px;">Claim Withdrawal</button>
+        </div>
+      </div>
+
+      <!-- Advanced: Wrap/Unwrap (collapsed by default) -->
+      <div class="card" id="advanced-wrap-card">
+        <button type="button" id="advanced-toggle" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;padding:0;cursor:pointer;">
+          <div class="card-head" style="margin-bottom:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+            Advanced: Wrap / Unwrap
+          </div>
+          <svg id="adv-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2" style="transition:transform var(--tn);flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="advanced-wrap-body" style="display:none;margin-top:14px;">
+          <div style="font-family:var(--fm);font-size:10px;color:var(--t2);padding:8px 10px;background:var(--s1);border:1px solid var(--b0);border-radius:var(--r2);margin-bottom:10px;line-height:1.5;">
+            wstETH — обёртка stETH для DeFi (Uniswap, AAVE). stETH ребейсится ежедневно, wstETH накапливает доход через рост курса.
+          </div>
+          <div class="stack">
+            <div class="wrap-toggle" id="wrap-toggle">
+              <button class="active" data-mode="wrap">stETH → wstETH</button>
+              <button data-mode="unwrap">wstETH → stETH</button>
+            </div>
+            <div class="stat-row"><span class="stat-lbl">wstETH Balance</span><span class="stat-val" style="color:var(--c);" id="lido-wrap-wsteth-bal">—</span></div>
+            <div class="stat-row"><span class="stat-lbl">Rate</span><span class="stat-val">1 wstETH = 1.1905 stETH</span></div>
+            <div class="field">
+              <span class="field-label" id="wrap-lbl">stETH amount</span>
+              <div class="amount-wrap"><input type="text" placeholder="0.0" id="lido-wrap-amount" autocomplete="off"/><button class="btn-max" id="lido-wrap-max">MAX</button></div>
+            </div>
+            <div class="steps" id="lido-wrap-progress" style="display:none"></div>
+            <button class="btn btn-primary btn-full" id="btn-lido-wrap">Wrap</button>
+            <div class="result" id="lido-wrap-result">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /lido-ui -->
+</div><!-- /panel-lido -->
+
+<!-- ════════════════════════════════════════════════════════════════
+     LIQUIDITY TAB
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-liquidity">
+  <div id="lp-unsupported" class="result err" style="display:none;margin-bottom:12px;">Liquidity is not available for this network.</div>
+  <div id="lp-ui">
+  <div class="liq-layout">
+    <!-- Left: Positions + New Position form -->
+    <div class="stack">
+      <!-- Existing positions -->
+      <div class="card">
+        <div class="card-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+          Your Positions
+        </div>
+        <div id="lp-positions-list">
+          <!-- Populated dynamically by loadLPPositions() -->
+        </div><!-- /lp-positions-list -->
+      </div>
+
+      <!-- Risk dashboard -->
+      <div class="card" id="lp-risk-dashboard" style="display:none">
+        <div class="card-head" id="lp-risk-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Risk Dashboard
+        </div>
+        <div class="risk-grid" id="lp-risk-content">
+          <!-- Populated dynamically by showPositionRisk() -->
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-family:var(--fm);font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">IL Heatmap vs Price Move</div>
+          <div class="il-heatmap" id="il-heatmap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Interactive Price Range Picker + New Position -->
+    <div class="stack">
+      <div class="range-picker-wrap">
+        <div class="rp-header">
+          <div>
+            <div class="rp-title">Price Range Picker</div>
+            <div style="display:flex;align-items:baseline;gap:6px;margin-top:3px;">
+              <div class="rp-price-label">Current</div>
+              <div class="rp-price-display" id="lp-current-price">—</div>
+            </div>
+          </div>
+          <div class="preset-btns" id="preset-btns">
+            <button class="preset-btn" data-preset="full">Full</button>
+            <button class="preset-btn" data-preset="5">±5%</button>
+            <button class="preset-btn active" data-preset="10">±10%</button>
+            <button class="preset-btn" data-preset="25">±25%</button>
+            <button class="preset-btn" data-preset="50">±50%</button>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="price-chart" height="140"></canvas>
+        </div>
+
+        <div class="price-inputs">
+          <div>
+            <div class="price-input-lbl">Min Price (USDC/ETH)</div>
+            <input class="price-input" id="min-price" type="number" value="3151.08" step="10"/>
+            <div class="price-adj">
+              <button class="price-adj-btn" onclick="adjustPrice('min',-1)">-1%</button>
+              <button class="price-adj-btn" onclick="adjustPrice('min',-5)">-5%</button>
+            </div>
+          </div>
+          <div>
+            <div class="price-input-lbl">Max Price (USDC/ETH)</div>
+            <input class="price-input" id="max-price" type="number" value="3851.32" step="10"/>
+            <div class="price-adj">
+              <button class="price-adj-btn" onclick="adjustPrice('max',1)">+1%</button>
+              <button class="price-adj-btn" onclick="adjustPrice('max',5)">+5%</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- New position form -->
+      <div class="card">
+        <div class="card-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          New Position
+        </div>
+        <div class="stack">
+          <div class="field">
+            <span class="field-label">Pool</span>
+            <select id="lp-pool-select">
+              <option value="ETH/USDC">ETH / USDC</option>
+              <option value="ETH/USDT">ETH / USDT</option>
+              <option value="wstETH/WETH">wstETH / WETH</option>
+              <option value="USDC/USDT">USDC / USDT</option>
+            </select>
+          </div>
+          <div class="field">
+            <span class="field-label">Fee Tier</span>
+            <div class="fee-grid" id="lp-fee-select">
+              <div class="fee-opt" data-fee="100"><div>0.01%</div><div class="fee-desc">Stable</div></div>
+              <div class="fee-opt" data-fee="500"><div>0.05%</div><div class="fee-desc">Correlated</div></div>
+              <div class="fee-opt active" data-fee="3000"><div>0.30%</div><div class="fee-desc">Most used</div></div>
+              <div class="fee-opt" data-fee="10000"><div>1.00%</div><div class="fee-desc">Exotic</div></div>
+            </div>
+          </div>
+          <div id="lp-pool-price" style="display:none;font-family:var(--fm);font-size:11px;color:var(--t1);padding:6px 0;"></div>
+          <div class="field">
+            <span class="field-label" id="lp-amount0-label">Amount Token0</span>
+            <div class="amount-wrap"><input type="text" placeholder="0.0" id="lp-amount0" autocomplete="off"/><button class="btn-max" id="lp-amount0-max">MAX</button></div>
+          </div>
+          <div class="field">
+            <span class="field-label" id="lp-amount1-label">Amount Token1</span>
+            <div class="amount-wrap"><input type="text" placeholder="0.0" id="lp-amount1" autocomplete="off"/><button class="btn-max" id="lp-amount1-max">MAX</button></div>
+          </div>
+          <!-- LP preview -->
+          <div id="lp-preview" style="background:var(--s1);border:1px solid var(--b0);border-radius:var(--r2);padding:10px 12px;">
+            <div class="stat-row"><span class="stat-lbl">Price range</span><span class="stat-val" id="preview-range">3,151.08 – 3,851.32</span></div>
+            <div class="stat-row"><span class="stat-lbl">Capital efficiency vs full range</span><span class="stat-val text-ok" id="preview-eff">~3.2×</span></div>
+            <div class="stat-row"><span class="stat-lbl">Est. fee APR (7d data)</span><span class="stat-val text-ok">~18.4%</span></div>
+          </div>
+          <div class="steps" id="lp-mint-progress" style="display:none"></div>
+          <button class="btn btn-primary btn-full" id="btn-lp-mint">Add Liquidity</button>
+          <div class="result" id="lp-mint-result">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     HISTORY TAB
+     ════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-history">
+  <div class="card">
+    <div class="card-head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Operations History
+    </div>
+    <!-- Filter row -->
+    <div class="row" style="gap:4px;margin-bottom:12px;">
+      <button class="btn-pill active" data-filter="all">All</button>
+      <button class="btn-pill" data-filter="aave">AAVE</button>
+      <button class="btn-pill" data-filter="swap">Swap</button>
+      <button class="btn-pill" data-filter="lido">Lido</button>
+      <button class="btn-pill" data-filter="lp">LP</button>
+    </div>
+    <div class="hist-log" id="history-log" style="max-height:380px;overflow-y:auto;">
+      <div class="hist-row"><span class="hist-detail" style="color:var(--t2);text-align:center;width:100%;">No operations yet</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+</div><!-- /app -->
+
+<div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

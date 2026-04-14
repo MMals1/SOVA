@@ -10,13 +10,13 @@
 
 ## Краткая сводка
 
-| Phase | Срок | Объём задач | Объём времени | Цель | Статус |
-|---|---|---|---|---|---|
-| **Phase 1** | 2 дня | 5 CRITICAL fixes | ~12 часов | Безопасность для публикации | ✅ v1.1.1 |
-| **Phase 2** | 1 неделя | 8 HIGH severity | ~20 часов | Закрыть exploit'абельные баги | ✅ v1.2.0 |
-| **Phase 3** | 2 недели | 17 MEDIUM + 2 LOW | ~30 часов | Defense in depth, hardening | ✅ v1.3.0 |
-| **Phase 4** | По возможности | 8 LOW fixes | ~10 часов | Качество кода, документация | ✅ v1.5.0 |
-| **Phase 5** | Следующий major | Архитектурный refactor | ~40 часов | Декомпозиция popup.js, TS, CI | pending |
+| Phase       | Срок            | Объём задач            | Объём времени | Цель                          | Статус    |
+| ----------- | --------------- | ---------------------- | ------------- | ----------------------------- | --------- |
+| **Phase 1** | 2 дня           | 5 CRITICAL fixes       | ~12 часов     | Безопасность для публикации   | ✅ v1.1.1 |
+| **Phase 2** | 1 неделя        | 8 HIGH severity        | ~20 часов     | Закрыть exploit'абельные баги | ✅ v1.2.0 |
+| **Phase 3** | 2 недели        | 17 MEDIUM + 2 LOW      | ~30 часов     | Defense in depth, hardening   | ✅ v1.3.0 |
+| **Phase 4** | По возможности  | 8 LOW fixes            | ~10 часов     | Качество кода, документация   | ✅ v1.5.0 |
+| **Phase 5** | Следующий major | Архитектурный refactor | ~40 часов     | Декомпозиция popup.js, TS, CI | pending   |
 
 **Общая оценка:** ~120 часов инженерной работы. Phase 1–4 завершены (v1.5.0). Оставшиеся LOW (2, 5, 6, 7, 13) и Phase 5 — по возможности.
 
@@ -62,6 +62,7 @@
 5. **Очистить git history** от старого ключа: `git filter-repo --replace-text` или явно перезаписать commit с ключом. Это destructive — спросить разрешения.
 
 **Acceptance criteria:**
+
 - ✅ `grep -r 'lrmoWsP5qrMt8' /Users/musamalsagov/Desktop/wallet/` returns 0 matches
 - ✅ Tests pass: `npm test`
 - ✅ Manual test на Sepolia с дефолтными publicnode RPC — работает
@@ -78,6 +79,7 @@
 **Шаги:**
 
 1. Добавить helper-функции в начало `service-worker.js`:
+
    ```js
    function isFromExtensionContext(sender) {
      // Popup и approval window открыты как chrome-extension://<id>/popup/popup.html
@@ -94,11 +96,19 @@
    ```
 
 2. В начале `handleMessage`, перед switch:
+
    ```js
    const POPUP_ONLY_TYPES = new Set([
-     'unlock', 'lock', 'activate-account', 'add-sub-account',
-     'reset-lock-timer', 'get-wallet-address', 'network-changed',
-     'dapp-approval-response', 'dapp-disconnect-origin', 'dapp-get-pending',
+     'unlock',
+     'lock',
+     'activate-account',
+     'add-sub-account',
+     'reset-lock-timer',
+     'get-wallet-address',
+     'network-changed',
+     'dapp-approval-response',
+     'dapp-disconnect-origin',
+     'dapp-get-pending',
    ]);
    const CONTENT_SCRIPT_TYPES = new Set(['dapp-request']);
 
@@ -125,7 +135,10 @@
    describe('SW message sender validation', () => {
      it('rejects unlock from content-script context', async () => {
        const fakeSender = { id: chrome.runtime.id, tab: { url: 'https://evil.com' } };
-       const result = await sendMessage({ type: 'unlock', accountIndex: 0, password: 'x' }, fakeSender);
+       const result = await sendMessage(
+         { type: 'unlock', accountIndex: 0, password: 'x' },
+         fakeSender,
+       );
        expect(result.error).toMatch(/Permission denied/);
      });
      // ... аналогично для всех POPUP_ONLY_TYPES
@@ -133,6 +146,7 @@
    ```
 
 **Acceptance criteria:**
+
 - ✅ Все 10 POPUP_ONLY_TYPES возвращают `Permission denied` если вызваны не из extension context
 - ✅ `dapp-request` корректно работает (он в CONTENT_SCRIPT_TYPES)
 - ✅ Existing `npm test` passes
@@ -150,6 +164,7 @@
 
 1. Удалить in-memory переменные `_failedAttempts`, `_lockoutUntil`.
 2. Создать helper'ы:
+
    ```js
    const LOCKOUT_KEY = 'security:lockout';
    const MAX_LOCKOUT_MS = 15 * 60 * 1000; // 15 минут вместо 60 сек
@@ -163,9 +178,8 @@
    async function recordFailedAttempt() {
      const state = await getLockoutState();
      const next = state.failedAttempts + 1;
-     const lockoutUntil = next >= 3
-       ? Date.now() + Math.min(MAX_LOCKOUT_MS, 5_000 * Math.pow(2, next - 3))
-       : 0;
+     const lockoutUntil =
+       next >= 3 ? Date.now() + Math.min(MAX_LOCKOUT_MS, 5_000 * Math.pow(2, next - 3)) : 0;
      await chrome.storage.local.set({
        [LOCKOUT_KEY]: { failedAttempts: next, lockoutUntil },
      });
@@ -177,6 +191,7 @@
    ```
 
 3. Заменить в `unlock` case:
+
    ```js
    case 'unlock': {
      // ... validation ...
@@ -213,13 +228,14 @@
      await mockSWHandle('unlock', { accountIndex: 0, password: 'wrong' });
      await mockSWHandle('unlock', { accountIndex: 0, password: 'wrong' });
      // 3 failures → lockout active
-     mockSWRestart();  // simulates SW kill
+     mockSWRestart(); // simulates SW kill
      const result = await mockSWHandle('unlock', { accountIndex: 0, password: 'correct' });
      expect(result.error).toMatch(/Подождите/);
    });
    ```
 
 **Acceptance criteria:**
+
 - ✅ После SW restart lockout сохраняется
 - ✅ Exponential backoff работает (cap 15 мин)
 - ✅ Reset после успешного unlock'а
@@ -239,19 +255,20 @@
 if (!window.ethereum) {
   Object.defineProperty(window, 'ethereum', {
     value: provider,
-    configurable: false,   // ← было true
+    configurable: false, // ← было true
     writable: false,
   });
 }
 
 Object.defineProperty(window, 'sova', {
   value: provider,
-  configurable: false,    // ← было true
+  configurable: false, // ← было true
   writable: false,
 });
 ```
 
 **Acceptance criteria:**
+
 - ✅ `delete window.sova` бросает ошибку (или silently fails)
 - ✅ Demo страница всё ещё работает
 - ✅ MetaMask coexistence по-прежнему функционирует
@@ -267,10 +284,13 @@ Object.defineProperty(window, 'sova', {
 **Шаги:**
 
 1. Изменить `persistPendingRequest` чтобы хранить **только** метаданные:
+
    ```js
    async function persistPendingRequest(id, payload) {
      try {
-       const { pendingDappRequests = {} } = await chrome.storage.session.get(['pendingDappRequests']);
+       const { pendingDappRequests = {} } = await chrome.storage.session.get([
+         'pendingDappRequests',
+       ]);
        // Только метаданные. params НЕ персистим (могут содержать sensitive typed data).
        pendingDappRequests[id] = {
          id: payload.id,
@@ -285,6 +305,7 @@ Object.defineProperty(window, 'sova', {
    ```
 
 2. В `dapp-get-pending` handler — если pending не найден в `_pendingApprovals` Map (т.е. SW рестартанул), возвращать `expired`:
+
    ```js
    case 'dapp-get-pending': {
      if (msg.id) {
@@ -308,13 +329,14 @@ Object.defineProperty(window, 'sova', {
      const { pendingDappRequests = {} } = await chrome.storage.session.get(['pendingDappRequests']);
      const now = Date.now();
      const cleaned = Object.fromEntries(
-       Object.entries(pendingDappRequests).filter(([_, req]) => req.expiresAt > now)
+       Object.entries(pendingDappRequests).filter(([_, req]) => req.expiresAt > now),
      );
      await chrome.storage.session.set({ pendingDappRequests: cleaned });
    });
    ```
 
 **Acceptance criteria:**
+
 - ✅ После SW restart старые pending requests автоматически expired
 - ✅ User видит понятное сообщение «Запрос истёк»
 - ✅ В session storage не остаются params/typed data
@@ -394,10 +416,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 **Время:** 2 часа
 
 Найти все 6 мест с `innerHTML`:
+
 - `addrRow.innerHTML = ...` (lines 138, 174)
 - `warn.innerHTML = ...` (lines 121, 156, 180, 308)
 
 Заменить на createElement + textContent. Пример:
+
 ```js
 function buildAddressRow(addressString) {
   const row = document.createElement('div');
@@ -430,7 +454,7 @@ function buildAddressRow(addressString) {
 if (chainMismatch) {
   const e = new Error(
     `chainId mismatch: typed data is for chain ${domainChainId}, ` +
-    `but wallet is on ${currentChainId}. Switch network in wallet first.`
+      `but wallet is on ${currentChainId}. Switch network in wallet first.`,
   );
   e.code = 4901; // Chain not configured
   throw e;
@@ -442,6 +466,7 @@ if (chainMismatch) {
 В `dapp-approval.js` `renderSignTypedData` — удалить блок «danger warning», т.к. до approval теперь не дойдёт.
 
 **Acceptance:**
+
 - Тест: dApp шлёт typed data с domain.chainId=1 когда wallet на chainId=11155111 → запрос отклонён с code 4901 без открытия approval popup'а
 
 ---
@@ -454,10 +479,11 @@ if (chainMismatch) {
 
 ```js
 await setLocal({ accounts, activeAccount: result.index });
-setAccountsCache(accounts);  // ← добавить
+setAccountsCache(accounts); // ← добавить
 ```
 
 Также проверить **все** места которые модифицируют `chrome.storage.local.accounts`:
+
 - `addSubAccount` ✅
 - legacy migration в DOMContentLoaded
 - `resetWallet` (если очищает storage)
@@ -475,6 +501,7 @@ setAccountsCache(accounts);  // ← добавить
 **Подэтапы:**
 
 1. Создать manifest зависимостей в начале `popup.js`:
+
    ```js
    function assertModulesLoaded() {
      const requirements = {
@@ -484,10 +511,32 @@ setAccountsCache(accounts);  // ← добавить
        PopupClipboard: ['copyText'],
        PopupTemplates: ['renderNetworkPickers', 'renderFeedbackMounts'],
        PopupSharedState: [],
-       PopupNetworkState: ['initializeNetworkState', 'getRpcUrlForNetwork', 'getCurrentNetworkMeta', 'setNetwork', '_readRpcChoice', '_saveRpcChoice', 'NETWORKS', 'DEFAULT_NETWORK_KEY'],
+       PopupNetworkState: [
+         'initializeNetworkState',
+         'getRpcUrlForNetwork',
+         'getCurrentNetworkMeta',
+         'setNetwork',
+         '_readRpcChoice',
+         '_saveRpcChoice',
+         'NETWORKS',
+         'DEFAULT_NETWORK_KEY',
+       ],
        PopupTxHistory: ['loadTransactions', 'fetchAlchemyTransfers', 'renderTransactions'],
-       PopupTokenState: ['getTokensForSelectedNetwork', 'setTokensForSelectedNetwork', 'loadTokenBalances', 'fetchTokenInfo', 'addToken', 'removeToken'],
-       PopupSendFlow: ['sendTransaction', 'confirmSend', 'cancelSend', 'showSendScreen', 'resetSendFlowUI'],
+       PopupTokenState: [
+         'getTokensForSelectedNetwork',
+         'setTokensForSelectedNetwork',
+         'loadTokenBalances',
+         'fetchTokenInfo',
+         'addToken',
+         'removeToken',
+       ],
+       PopupSendFlow: [
+         'sendTransaction',
+         'confirmSend',
+         'cancelSend',
+         'showSendScreen',
+         'resetSendFlowUI',
+       ],
        PopupUiState: ['showScreen', 'switchTab', 'switchWalletTab'],
        PopupEventBinder: ['bindDeclarativeHandlers'],
        PopupDappApproval: ['getRequestIdFromUrl', 'handleRequest', 'renderConnectedSitesList'],
@@ -498,7 +547,11 @@ setAccountsCache(accounts);  // ← добавить
          throw new Error(`Required module not loaded: Wolf${name}. Check popup.html script order.`);
        }
        for (const m of methods) {
-         if (typeof mod[m] !== 'function' && typeof mod[m] !== 'object' && typeof mod[m] !== 'string') {
+         if (
+           typeof mod[m] !== 'function' &&
+           typeof mod[m] !== 'object' &&
+           typeof mod[m] !== 'string'
+         ) {
            throw new Error(`Wolf${name}.${m} is missing or wrong type`);
          }
        }
@@ -507,6 +560,7 @@ setAccountsCache(accounts);  // ← добавить
    ```
 
 2. В `DOMContentLoaded` callback:
+
    ```js
    try {
      assertModulesLoaded();
@@ -531,6 +585,7 @@ setAccountsCache(accounts);  // ← добавить
 **Risk:** удаление fallback'а может выявить случай где модуль на самом деле не вызывается → runtime error в продакшне. Поэтому делать постепенно с тестами.
 
 **Acceptance:**
+
 - `popup.js` уменьшается с 2240 до **примерно 1500-1600** строк
 - Все тесты проходят
 - Manual smoke test всех сценариев
@@ -558,11 +613,13 @@ setAccountsCache(accounts);  // ← добавить
 ```
 
 Удалить:
+
 - ❌ `https://*/*` — теперь content_scripts.matches достаточно (Chrome даёт ему права на эти URL без host_permissions)
 - ❌ `http://localhost/*` — оставить только в content_scripts.matches
 - ❌ `http://127.0.0.1/*` — то же
 
 **Внимание:** проверить что после удаления:
+
 - Content script всё ещё инжектится на любой https-страницу (это работает через `content_scripts.matches`, не через `host_permissions`)
 - Token logo загрузка работает (CDN'ы не в `host_permissions`, но в `img-src` CSP — это другое)
 
@@ -591,6 +648,7 @@ if (!r?.ok) {
 ```
 
 Также проверить другие fire-and-forget вызовы `sendToSW`:
+
 - `loadWalletScreen` → `sendToSW({ type: 'reset-lock-timer' })` — допустимо fire-and-forget (не блокирующее)
 - `notifyChainChangedToDapps` — fire-and-forget OK (broadcast)
 
@@ -759,15 +817,15 @@ Defense in depth, hardening, edge case handling. Эти проблемы не к
 
 После Phase 2 (удаление fallback chains) `popup.js` будет ~1500 строк. Дальше декомпозировать на:
 
-| Новый модуль | Что выделить | Из |
-|---|---|---:|
-| `bootstrap.js` | DOMContentLoaded, миграции, init | popup.js |
-| `accounts.js` | switchAccount, addSubAccount, renderAccountMenu, getAccountsCached | popup.js |
-| `quiz-flow.js` | createWallet, mnemonic display, quiz validation | popup.js |
-| `import-flow.js` | importWallet validation | popup.js |
-| `refresh-loop.js` | startAutoRefresh, stopAutoRefresh, refreshActiveAccountData | popup.js |
-| `unlock-flow.js` | unlockWallet, lockWallet, handleSWLocked | popup.js |
-| `address-book.js` | knownRecipients management | popup.js + dapp-approval.js |
+| Новый модуль      | Что выделить                                                       |                          Из |
+| ----------------- | ------------------------------------------------------------------ | --------------------------: |
+| `bootstrap.js`    | DOMContentLoaded, миграции, init                                   |                    popup.js |
+| `accounts.js`     | switchAccount, addSubAccount, renderAccountMenu, getAccountsCached |                    popup.js |
+| `quiz-flow.js`    | createWallet, mnemonic display, quiz validation                    |                    popup.js |
+| `import-flow.js`  | importWallet validation                                            |                    popup.js |
+| `refresh-loop.js` | startAutoRefresh, stopAutoRefresh, refreshActiveAccountData        |                    popup.js |
+| `unlock-flow.js`  | unlockWallet, lockWallet, handleSWLocked                           |                    popup.js |
+| `address-book.js` | knownRecipients management                                         | popup.js + dapp-approval.js |
 
 После рефакторинга `popup.js` должен быть **не более 300-400 строк** — только wiring и event listeners.
 
@@ -781,6 +839,7 @@ Defense in depth, hardening, edge case handling. Эти проблемы не к
 #### P5-3. CI/CD (4 часов)
 
 GitHub Actions workflow:
+
 ```yaml
 name: CI
 on: [pull_request, push]
@@ -821,31 +880,31 @@ Branch protection: main требует green CI.
 
 ### Unit tests
 
-| Файл | Что покрывает | Effort |
-|---|---|---|
-| `tests/unit/sender-validation.test.js` | isFromExtensionContext, isFromOurContentScript | 30m |
-| `tests/unit/lockout-state.test.js` | persistent lockout, exponential backoff | 1h |
-| `tests/unit/eth-accounts-filter.test.js` | active wallet filter logic | 30m |
-| `tests/unit/event-binder-tokenizer.test.js` | proper string parsing | 1h |
-| `tests/unit/amount-validation.test.js` | Infinity, scientific notation, edge cases | 30m |
+| Файл                                        | Что покрывает                                  | Effort |
+| ------------------------------------------- | ---------------------------------------------- | ------ |
+| `tests/unit/sender-validation.test.js`      | isFromExtensionContext, isFromOurContentScript | 30m    |
+| `tests/unit/lockout-state.test.js`          | persistent lockout, exponential backoff        | 1h     |
+| `tests/unit/eth-accounts-filter.test.js`    | active wallet filter logic                     | 30m    |
+| `tests/unit/event-binder-tokenizer.test.js` | proper string parsing                          | 1h     |
+| `tests/unit/amount-validation.test.js`      | Infinity, scientific notation, edge cases      | 30m    |
 
 ### Integration tests
 
-| Файл | Effort |
-|---|---|
-| `tests/integration/inline-unlock-approval.test.js` | 2h |
-| `tests/integration/wallet-revoke-permissions.test.js` | 1h |
-| `tests/integration/broadcast-accounts-changed.test.js` | 2h |
-| `tests/integration/sw-restart-pending-approval.test.js` | 2h |
-| `tests/integration/message-sender-validation.test.js` | 1h |
+| Файл                                                    | Effort |
+| ------------------------------------------------------- | ------ |
+| `tests/integration/inline-unlock-approval.test.js`      | 2h     |
+| `tests/integration/wallet-revoke-permissions.test.js`   | 1h     |
+| `tests/integration/broadcast-accounts-changed.test.js`  | 2h     |
+| `tests/integration/sw-restart-pending-approval.test.js` | 2h     |
+| `tests/integration/message-sender-validation.test.js`   | 1h     |
 
 ### E2E tests
 
-| Файл | Effort |
-|---|---|
-| `tests/e2e/dapp-demo.spec.js` (полный flow) | 3h |
-| `tests/e2e/multi-account-multi-mnemonic.spec.js` | 2h |
-| `tests/e2e/sw-restart-recovery.spec.js` | 2h |
+| Файл                                             | Effort |
+| ------------------------------------------------ | ------ |
+| `tests/e2e/dapp-demo.spec.js` (полный flow)      | 3h     |
+| `tests/e2e/multi-account-multi-mnemonic.spec.js` | 2h     |
+| `tests/e2e/sw-restart-recovery.spec.js`          | 2h     |
 
 **Total test coverage work:** ~18 часов (можно делать параллельно с phase'ами)
 
@@ -874,6 +933,7 @@ Branch protection: main требует green CI.
 ### `tests/test-status.md` (новый)
 
 Создать как живой документ:
+
 ```
 Last run: <date>
 Tests: X total, Y passing, Z failing
@@ -889,21 +949,21 @@ Latest changes: <list>
 
 ### Технические риски
 
-| Риск | Вероятность | Mitigation |
-|---|---|---|
-| Phase 2 P2-6 (удаление fallback'ов) ломает работающий код | Высокая | Делать постепенно, после каждого fallback запускать тесты |
-| Persistent lockout state блокирует пользователя надолго | Средняя | Cap 15 минут + reset через UI «I forgot password» |
-| Удаление `https://*/*` из host_permissions ломает что-то | Средняя | Тщательное тестирование всех RPC endpoints |
-| Migration старых пользователей на новый network-config | Низкая | Migration code в popup.js bootstrap (при отсутствии custom RPC — fallback) |
-| Регрессия в CSP после удаления `unsafe-inline` | Средняя | Проверить визуально все экраны |
+| Риск                                                      | Вероятность | Mitigation                                                                 |
+| --------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| Phase 2 P2-6 (удаление fallback'ов) ломает работающий код | Высокая     | Делать постепенно, после каждого fallback запускать тесты                  |
+| Persistent lockout state блокирует пользователя надолго   | Средняя     | Cap 15 минут + reset через UI «I forgot password»                          |
+| Удаление `https://*/*` из host_permissions ломает что-то  | Средняя     | Тщательное тестирование всех RPC endpoints                                 |
+| Migration старых пользователей на новый network-config    | Низкая      | Migration code в popup.js bootstrap (при отсутствии custom RPC — fallback) |
+| Регрессия в CSP после удаления `unsafe-inline`            | Средняя     | Проверить визуально все экраны                                             |
 
 ### Operational риски
 
-| Риск | Mitigation |
-|---|---|
+| Риск                                                                | Mitigation                                                           |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | Невозможно отозвать Alchemy ключ из-за привязки к платному аккаунту | Создать backup ключ ДО revoke; уведомить пользователей через лендинг |
-| Пользователи с `1.0.0` теряют доступ из-за migration ошибки | Тщательная backwards compat в migration code |
-| Rollback после неудачного релиза | Сохранить старый zip; documentation manual rollback steps |
+| Пользователи с `1.0.0` теряют доступ из-за migration ошибки         | Тщательная backwards compat в migration code                         |
+| Rollback после неудачного релиза                                    | Сохранить старый zip; documentation manual rollback steps            |
 
 ---
 
@@ -958,6 +1018,7 @@ Latest changes: <list>
 ## Заключение
 
 Этот план **не jam-everything-at-once approach**. Он структурирован в фазы:
+
 - **Phase 1** (2 дня) — must-do для безопасности перед публикацией
 - **Phase 2** (1 неделя) — закрытие exploit'абельных багов
 - **Phase 3** (2 недели) — defense in depth

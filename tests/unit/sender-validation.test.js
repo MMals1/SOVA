@@ -50,45 +50,66 @@ const EXPECTED_POPUP_ONLY_TYPES = new Set([
   'add-sub-account',
   'reset-lock-timer',
   'get-wallet-address',
+  'check-wallet-unlocked',
   'network-changed',
   'send-eth',
   'send-erc20',
+  'verify-password',
   'dapp-approval-response',
   'dapp-disconnect-origin',
   'dapp-get-pending',
 ]);
 
-const EXPECTED_CONTENT_SCRIPT_TYPES = new Set([
-  'dapp-request',
-]);
+const EXPECTED_CONTENT_SCRIPT_TYPES = new Set(['dapp-request']);
 
 // ── Helper: извлекаем whitelist прямо из исходника service-worker.js ──
 // Это гарантирует что тест останется в синке с кодом.
 
 function loadSwSource() {
-  const swPath = path.resolve(__dirname, '../../extension/background/service-worker.js');
-  return fs.readFileSync(swPath, 'utf8');
+  // После декомпозиции SW: sender validation constants в sw-dapp.js,
+  // message handler в sw-handlers.js. Конкатенируем для полного покрытия.
+  const files = [
+    path.resolve(__dirname, '../../extension/background/sw-dapp.js'),
+    path.resolve(__dirname, '../../extension/background/sw-handlers.js'),
+    path.resolve(__dirname, '../../extension/background/service-worker.js'),
+  ];
+  return files
+    .filter((f) => fs.existsSync(f))
+    .map((f) => fs.readFileSync(f, 'utf8'))
+    .join('\n');
+}
+
+// Load message-types.js so we can resolve MessageType.XXX → string values
+const messageTypesPath = path.resolve(__dirname, '../../extension/shared/message-types.js');
+require(messageTypesPath);
+const _MessageType = globalThis.MessageType;
+
+function resolveMessageTypeRefs(body) {
+  // Matches: MessageType.UNLOCK, MessageType.SEND_ETH, etc.
+  const refs = [...body.matchAll(/MessageType\.([A-Z_0-9]+)/g)].map((m) => m[1]);
+  return new Set(
+    refs.map((key) => {
+      if (!(key in _MessageType)) throw new Error(`Unknown MessageType.${key}`);
+      return _MessageType[key];
+    }),
+  );
 }
 
 function extractPopupOnlyTypesFromSource(src) {
   const match = src.match(/const POPUP_ONLY_MESSAGE_TYPES = new Set\(\[([\s\S]*?)\]\)/);
   if (!match) throw new Error('POPUP_ONLY_MESSAGE_TYPES not found in service-worker.js');
-  const body = match[1];
-  const entries = [...body.matchAll(/'([^']+)'/g)].map(m => m[1]);
-  return new Set(entries);
+  return resolveMessageTypeRefs(match[1]);
 }
 
 function extractContentScriptTypesFromSource(src) {
   const match = src.match(/const CONTENT_SCRIPT_MESSAGE_TYPES = new Set\(\[([\s\S]*?)\]\)/);
   if (!match) throw new Error('CONTENT_SCRIPT_MESSAGE_TYPES not found in service-worker.js');
-  const body = match[1];
-  const entries = [...body.matchAll(/'([^']+)'/g)].map(m => m[1]);
-  return new Set(entries);
+  return resolveMessageTypeRefs(match[1]);
 }
 
 function extractMessageTypesSentByPopup() {
-  // Ищем во всех popup-side файлах все вызовы sendToSW({ type: 'X' })
-  // или chrome.runtime.sendMessage({ type: 'X' })
+  // Ищем во всех popup-side файлах все вызовы sendToSW({ type: MessageType.X })
+  // или chrome.runtime.sendMessage({ type: MessageType.X })
   const files = [
     path.resolve(__dirname, '../../extension/popup/popup.js'),
     path.resolve(__dirname, '../../extension/popup/modules/network-state.js'),
@@ -96,16 +117,22 @@ function extractMessageTypesSentByPopup() {
     path.resolve(__dirname, '../../extension/popup/modules/tx-history.js'),
     path.resolve(__dirname, '../../extension/popup/modules/send-flow.js'),
     path.resolve(__dirname, '../../extension/popup/modules/dapp-approval.js'),
+    path.resolve(__dirname, '../../extension/popup/modules/unlock-flow.js'),
+    path.resolve(__dirname, '../../extension/popup/modules/wallet-create-import.js'),
+    path.resolve(__dirname, '../../extension/popup/modules/accounts.js'),
+    path.resolve(__dirname, '../../extension/popup/modules/refresh-loop.js'),
   ];
 
   const types = new Set();
-  const pattern = /(?:sendToSW|chrome\.runtime\.sendMessage)\s*\(\s*\{\s*type:\s*['"]([^'"]+)['"]/g;
+  const pattern =
+    /(?:sendToSW|chrome\.runtime\.sendMessage)\s*\(\s*\{\s*type:\s*MessageType\.([A-Z_0-9]+)/g;
 
   for (const f of files) {
     if (!fs.existsSync(f)) continue;
     const src = fs.readFileSync(f, 'utf8');
     for (const m of src.matchAll(pattern)) {
-      types.add(m[1]);
+      const key = m[1];
+      if (key in _MessageType) types.add(_MessageType[key]);
     }
   }
   return types;
@@ -293,13 +320,13 @@ describe('popup → SW message types are all whitelisted', () => {
   });
 
   it('all popup-sent message types are in whitelist', () => {
-    const notWhitelisted = [...sentByPopup].filter(t => !whitelist.has(t));
+    const notWhitelisted = [...sentByPopup].filter((t) => !whitelist.has(t));
     if (notWhitelisted.length > 0) {
       throw new Error(
         `The following message types are sent from popup but NOT in POPUP_ONLY_MESSAGE_TYPES:\n` +
-        notWhitelisted.map(t => `  - ${t}`).join('\n') +
-        `\n\nThis will cause "Unknown message type" errors in SW.\n` +
-        `Add them to extension/background/service-worker.js POPUP_ONLY_MESSAGE_TYPES.`
+          notWhitelisted.map((t) => `  - ${t}`).join('\n') +
+          `\n\nThis will cause "Unknown message type" errors in SW.\n` +
+          `Add them to extension/background/service-worker.js POPUP_ONLY_MESSAGE_TYPES.`,
       );
     }
     expect(notWhitelisted).toEqual([]);
@@ -371,13 +398,21 @@ describe('cross-context spoofing scenarios', () => {
   });
 
   it('accepts dapp-request from content-script (correct path)', () => {
-    const msg = { type: 'dapp-request', origin: 'https://uniswap.org', payload: { method: 'eth_chainId' } };
+    const msg = {
+      type: 'dapp-request',
+      origin: 'https://uniswap.org',
+      payload: { method: 'eth_chainId' },
+    };
     const sender = { id: 'sova-ext-id', tab: { url: 'https://uniswap.org' } };
     expect(validateMessage(msg, sender)).toBe(true);
   });
 
   it('rejects dapp-request from popup (wrong path)', () => {
-    const msg = { type: 'dapp-request', origin: 'https://uniswap.org', payload: { method: 'eth_chainId' } };
+    const msg = {
+      type: 'dapp-request',
+      origin: 'https://uniswap.org',
+      payload: { method: 'eth_chainId' },
+    };
     const sender = { id: 'sova-ext-id' }; // no tab = popup
     expect(() => validateMessage(msg, sender)).toThrow(/Permission denied.*dapp-request/);
   });

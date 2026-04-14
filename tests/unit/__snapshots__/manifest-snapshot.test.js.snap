@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`manifest.json security regression > content_security_policy should match snapshot 1`] = `
+{
+  "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://eth-sepolia.g.alchemy.com https://*.g.alchemy.com https://*.infura.io https://*.quiknode.pro https://*.publicnode.com https://*.drpc.org https://*.llamarpc.com https://*.ankr.com https://*.chainstack.com https://*.1rpc.io https://eth.blockscout.com https://eth-sepolia.blockscout.com https://api.etherscan.io https://deep-index.moralis.io; img-src 'self' https://raw.githubusercontent.com https://tokens.1inch.io https://tokens-data.1inch.io data:; object-src 'none'; frame-ancestors 'none'; form-action 'none'",
+}
+`;
+
+exports[`manifest.json security regression > host_permissions should match snapshot 1`] = `
+[
+  "https://*.g.alchemy.com/*",
+  "https://*.infura.io/*",
+  "https://*.quiknode.pro/*",
+  "https://*.publicnode.com/*",
+  "https://*.drpc.org/*",
+  "https://*.llamarpc.com/*",
+  "https://*.ankr.com/*",
+  "https://*.chainstack.com/*",
+  "https://*.1rpc.io/*",
+  "https://eth.blockscout.com/*",
+  "https://eth-sepolia.blockscout.com/*",
+  "https://api.etherscan.io/*",
+  "https://deep-index.moralis.io/*",
+]
+`;
+
+exports[`manifest.json security regression > web_accessible_resources should match snapshot 1`] = `
+[
+  {
+    "matches": [
+      "https://*/*",
+      "http://localhost/*",
+      "http://127.0.0.1/*",
+    ],
+    "resources": [
+      "inpage/provider.js",
+    ],
+  },
+]
+`;

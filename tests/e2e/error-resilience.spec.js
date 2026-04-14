@@ -100,7 +100,7 @@ test.describe('error handling & resilience', () => {
 test.describe('UI rendering & consistency', () => {
   test('displays all account screens without CSS errors', async ({ page }) => {
     const cssErrors = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') cssErrors.push(msg.text());
     });
 
@@ -119,7 +119,7 @@ test.describe('UI rendering & consistency', () => {
     await page.click('#btn-back');
 
     // Filter CSS-related errors
-    const relevantErrors = cssErrors.filter(e => !e.includes('blocked by CSP'));
+    const relevantErrors = cssErrors.filter((e) => !e.includes('blocked by CSP'));
     expect(relevantErrors.length).toBe(0);
   });
 
@@ -133,15 +133,15 @@ test.describe('UI rendering & consistency', () => {
     });
 
     // Check address uses monospace font
-    const addressFont = await page.locator('#wallet-address').evaluate(el =>
-      window.getComputedStyle(el).fontFamily
-    );
+    const addressFont = await page
+      .locator('#wallet-address')
+      .evaluate((el) => window.getComputedStyle(el).fontFamily);
     expect(addressFont).toContain('Plex');
 
     // Check amount uses monospace
-    const amountFont = await page.locator('#wallet-balance').evaluate(el =>
-      window.getComputedStyle(el).fontFamily
-    );
+    const amountFont = await page
+      .locator('#wallet-balance')
+      .evaluate((el) => window.getComputedStyle(el).fontFamily);
     expect(amountFont).toContain('Plex');
   });
 
@@ -176,8 +176,20 @@ test.describe('UI rendering & consistency', () => {
         activeAccount: 0,
         txHistory: {
           'eth-mainnet:0xabc': [
-            { hash: '0x111', direction: 'out', from: '0xABC', to: '0xDEF', value: '1000000000000000000' },
-            { hash: '0x222', direction: 'in', from: '0xXYZ', to: '0xABC', value: '500000000000000000' },
+            {
+              hash: '0x111',
+              direction: 'out',
+              from: '0xABC',
+              to: '0xDEF',
+              value: '1000000000000000000',
+            },
+            {
+              hash: '0x222',
+              direction: 'in',
+              from: '0xXYZ',
+              to: '0xABC',
+              value: '500000000000000000',
+            },
           ],
         },
         selectedNetwork: 'eth-mainnet',
@@ -220,7 +232,7 @@ test.describe('UI rendering & consistency', () => {
   test('copy address function works', async ({ page }) => {
     const clipboardData = [];
 
-    await page.on('console', msg => {
+    await page.on('console', (msg) => {
       if (msg.text().includes('Copied')) {
         clipboardData.push('copied');
       }
@@ -257,12 +269,8 @@ test.describe('UI rendering & consistency', () => {
         accounts: [{ address: '0xABC', keystore: 'mock-keystore', name: 'Main' }],
         activeAccount: 0,
         txHistory: {
-          'eth-mainnet:0xabc': [
-            { hash: '0x111', direction: 'out' },
-          ],
-          'eth-sepolia:0xabc': [
-            { hash: '0x222', direction: 'out' },
-          ],
+          'eth-mainnet:0xabc': [{ hash: '0x111', direction: 'out' }],
+          'eth-sepolia:0xabc': [{ hash: '0x222', direction: 'out' }],
         },
         selectedNetwork: 'eth-mainnet',
       },
@@ -288,7 +296,7 @@ test.describe('UI rendering & consistency', () => {
 test.describe('CSP compliance', () => {
   test('inline event handlers do not block', async ({ page }) => {
     const pageErrors = [];
-    page.on('pageerror', err => {
+    page.on('pageerror', (err) => {
       if (err.message.includes('CSP')) pageErrors.push(err.message);
     });
 
@@ -305,12 +313,14 @@ test.describe('CSP compliance', () => {
     await page.click('#btn-back');
 
     // Filter actual CSP errors (not warnings)
-    const cspErrors = pageErrors.filter(e => e.includes("Refused to execute") && e.includes('style'));
+    const cspErrors = pageErrors.filter(
+      (e) => e.includes('Refused to execute') && e.includes('style'),
+    );
     expect(cspErrors.length).toBe(0);
   });
 
   test('button clicks work under MV3 CSP', async ({ page }) => {
-    let buttonClicked = false;
+    const buttonClicked = false;
 
     await page.evaluate(() => {
       globalThis.testClick = () => {

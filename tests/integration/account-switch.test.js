@@ -75,7 +75,7 @@ describe('account switching', () => {
   });
 
   it('shows unlock screen for selected account that is not unlocked in worker', async () => {
-    let activeAddress = '0x1111';
+    const activeAddress = '0x1111';
     const sendToSW = vi.fn(async (msg) => {
       if (msg.type === 'get-wallet-address') {
         return { ok: true, address: activeAddress };

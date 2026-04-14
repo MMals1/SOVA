@@ -1,0 +1,119 @@
+/* Tabs (setup) */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  background: #1c1c28;
+  border-radius: 10px;
+  padding: 4px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.tab-btn.active {
+  background: #2a2a3a;
+  color: #e0e0e0;
+}
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
+/* API key */
+.api-key-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #1c1c28;
+}
+.api-key-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #888;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.api-key-label input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.api-key-section a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+.api-key-section a:hover {
+  text-decoration: underline;
+}
+/* Mnemonic */
+.mnemonic-box {
+  background: #1c1c28;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  padding: 14px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  word-break: break-word;
+  margin-bottom: 12px;
+  user-select: all;
+}
+/* 1.4: Seed phrase blur */
+.mnemonic-box.seed-blurred {
+  filter: blur(6px);
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.2s;
+}
+.mnemonic-box.seed-revealed {
+  filter: none;
+  user-select: all;
+}
+.seed-blur-hint {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin-top: -8px;
+  cursor: pointer;
+}
+.seed-blur-hint.hidden {
+  display: none;
+}
+/* Etherscan key */
+.etherscan-key-field {
+  margin-top: 12px;
+}
+.etherscan-key-field label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+.hint-inline {
+  color: #666;
+  font-weight: normal;
+}
+.etherscan-key-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.etherscan-key-row input {
+  flex: 1;
+}

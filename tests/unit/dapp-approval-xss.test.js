@@ -74,7 +74,9 @@ describe('buildKvRow — XSS protection', () => {
 
   it('handles addresses with checksums without issue', () => {
     const row = buildKvRow('Address', '0x7cf15e3010638bd548629a0B29700Ac4911589de');
-    expect(row.querySelector('.dapp-v').textContent).toBe('0x7cf15e3010638bd548629a0B29700Ac4911589de');
+    expect(row.querySelector('.dapp-v').textContent).toBe(
+      '0x7cf15e3010638bd548629a0B29700Ac4911589de',
+    );
   });
 
   it('handles unicode/emoji safely', () => {
@@ -161,21 +163,24 @@ describe('P2-3: dapp-approval.js source has no unsafe innerHTML interpolation', 
   const fs = require('fs');
   const path = require('path');
 
-  const SOURCE_PATH = path.resolve(
+  const SOURCE_PATH = path.resolve(__dirname, '../../extension/popup/modules/dapp-approval.js');
+  const RENDER_PATH = path.resolve(
     __dirname,
-    '../../extension/popup/modules/dapp-approval.js'
+    '../../extension/popup/modules/dapp-approval-render.js',
   );
   const src = fs.readFileSync(SOURCE_PATH, 'utf8');
+  const renderSrc = fs.existsSync(RENDER_PATH) ? fs.readFileSync(RENDER_PATH, 'utf8') : '';
+  const combinedSrc = src + '\n' + renderSrc;
 
   it('has no innerHTML = `...${...}...` with string template interpolation', () => {
     // Regex: ищем innerHTML = `...${...}...` (template literal with interpolation)
     const pattern = /\.innerHTML\s*=\s*`[^`]*\$\{[^`]*`/g;
-    const matches = src.match(pattern) || [];
+    const matches = combinedSrc.match(pattern) || [];
     if (matches.length > 0) {
       throw new Error(
         `Found ${matches.length} unsafe innerHTML interpolations in dapp-approval.js:\n` +
-        matches.map(m => `  - ${m.slice(0, 100)}...`).join('\n') +
-        `\n\nUse buildKvRow/buildWarnBox/buildTreeTitle helpers instead.`
+          matches.map((m) => `  - ${m.slice(0, 100)}...`).join('\n') +
+          `\n\nUse buildKvRow/buildWarnBox/buildTreeTitle helpers instead.`,
       );
     }
     expect(matches).toEqual([]);
@@ -184,25 +189,25 @@ describe('P2-3: dapp-approval.js source has no unsafe innerHTML interpolation', 
   it('has no innerHTML = "...${escapeHtml(...)}..."', () => {
     // Старый паттерн с escapeHtml — тоже плохо (removed с P2-3)
     const pattern = /innerHTML[^;]*escapeHtml/;
-    expect(src).not.toMatch(pattern);
+    expect(combinedSrc).not.toMatch(pattern);
   });
 
   it('uses buildKvRow helper', () => {
-    expect(src).toMatch(/buildKvRow/);
+    expect(combinedSrc).toMatch(/buildKvRow/);
   });
 
   it('uses buildWarnBox helper', () => {
-    expect(src).toMatch(/buildWarnBox/);
+    expect(combinedSrc).toMatch(/buildWarnBox/);
   });
 
   it('uses buildTreeTitle helper', () => {
-    expect(src).toMatch(/buildTreeTitle/);
+    expect(combinedSrc).toMatch(/buildTreeTitle/);
   });
 
   it('allowed innerHTML uses are only empty-string clearing', () => {
     // Позволенный паттерн: body.innerHTML = '' (очистка перед пересборкой)
     const allPattern = /\.innerHTML\s*=\s*([^;]+);/g;
-    const all = [...src.matchAll(allPattern)];
+    const all = [...combinedSrc.matchAll(allPattern)];
     for (const m of all) {
       const assignment = m[1].trim();
       // Должно быть либо '' либо "" либо пусто
@@ -210,7 +215,7 @@ describe('P2-3: dapp-approval.js source has no unsafe innerHTML interpolation', 
       if (!isEmptyString) {
         throw new Error(
           `Unexpected innerHTML assignment in dapp-approval.js: ${m[0]}\n` +
-          `Only empty string clearing is allowed, use DOM helpers otherwise.`
+            `Only empty string clearing is allowed, use DOM helpers otherwise.`,
         );
       }
     }

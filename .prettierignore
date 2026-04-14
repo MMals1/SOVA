@@ -1,0 +1,8 @@
+extension/libs/
+extension/popup/popup.bundle.js
+node_modules/
+test-results/
+*.crx
+*.zip
+# Demo site HTML with intentional structure Prettier's parser can't handle
+site/bank.html

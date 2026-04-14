@@ -1,0 +1,27 @@
+{
+  "incidentId": "INC-2026-03-29-wallet-theft",
+  "chain": "ethereum-mainnet",
+  "victimAddress": "0xAbDb2D1C02f0A2130bDD5731c9048bB386cD9B61",
+  "attackerAddress": "0xeeeee90971B6264C53175D3Af6840a8dD5dc7b6C",
+  "txHash": "0xf0ee06d6aa87ff8e274937c731e1ba9beb4c3b01fc87e7e57db0c0701a3c4a42",
+  "tx": {
+    "blockHash": "0x222963690472efa1a1f608e775d5e154a20e6fe3c3fe8812fff362ae8ddb1db8",
+    "blockNumber": "0x179de38",
+    "blockTimestamp": "0x69c93cb3",
+    "timestampIso": "2026-03-29T14:52:35.000Z",
+    "from": "0xabdb2d1c02f0a2130bdd5731c9048bb386cd9b61",
+    "to": "0xeeeee90971b6264c53175d3af6840a8dd5dc7b6c",
+    "valueWei": "0x2fe19eea3a5a8",
+    "valueEth": "0.000842337284761",
+    "gas": "0x5208",
+    "gasPrice": "0x7dd52676",
+    "type": "0x0",
+    "chainId": "0x1",
+    "input": "0x",
+    "status": "0x1"
+  },
+  "source": {
+    "rpc": "https://ethereum-rpc.publicnode.com",
+    "methods": ["eth_getTransactionByHash", "eth_getTransactionReceipt"]
+  }
+}

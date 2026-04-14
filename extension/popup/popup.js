@@ -1,47 +1,65 @@
 'use strict';
 
-// ── SOVA Wallet — popup.js (P5-1 decomposed) ───────────────────────────
+// ── SOVA Wallet — popup.js (wiring layer) ──────────────────────────────
 // Роль этого файла: wiring. Все бизнес-логика в модулях.
 // Этот файл:
 //  1. Связывает модули с globalThis (для event-binder data-onclick)
 //  2. Синхронизирует PopupState с runtime-переменными
-//  3. Предоставляет provider cache и утилиты (formatAmount, shortAddr)
-//  4. Запускает bootstrap
+//  3. Запускает bootstrap
 //
-// Все модули загружаются из popup.html ДО этого файла.
-// bootstrap.js → assertModulesLoaded() гарантирует их наличие.
+// Утилиты (formatAmount, shortAddr, provider cache) — popup-utils.js
+// Seed backup — backup-seed.js
 
-// ── Module references (без fallback'ов — bootstrap проверяет) ───────────
-const WalletCore   = globalThis.WolfWalletCore || {};
-const PopupState   = globalThis.WolfPopupSharedState;
-const NS           = globalThis.WolfPopupNetworkState;
-const TxHistory    = globalThis.WolfPopupTxHistory;
-const TokenState   = globalThis.WolfPopupTokenState;
-const SendFlow     = globalThis.WolfPopupSendFlow;
-const UiState      = globalThis.WolfPopupUiState;
-const DappApproval = globalThis.WolfPopupDappApproval;
-const Accounts     = globalThis.WolfPopupAccounts;
-const QuizFlow     = globalThis.WolfPopupQuizFlow;
-const UnlockFlow   = globalThis.WolfPopupUnlockFlow;
-const RefreshLoop  = globalThis.WolfPopupRefreshLoop;
-const SwMsg        = globalThis.WolfPopupSwMessaging;
-const Bootstrap    = globalThis.WolfPopupBootstrap;
-const Storage      = globalThis.WolfPopupStorage;
-const UiMessages   = globalThis.WolfPopupUiMessages;
-const Avatar       = globalThis.WolfPopupAvatar;
-const Clipboard    = globalThis.WolfPopupClipboard;
+// ── Module imports ──────────────────────────────────────────────────────
+import { WolfPopupSharedState } from './modules/popup-state.js';
+import { WolfPopupStorage } from './modules/storage.js';
+import { WolfPopupUiMessages } from './modules/ui-messages.js';
+import { WolfPopupAvatar } from './modules/avatar.js';
+import { WolfPopupClipboard } from './modules/clipboard.js';
+import { WolfPopupNetworkState } from './modules/network-state.js';
+import { WolfPopupTxHistory } from './modules/tx-history.js';
+import { WolfPopupTokenState } from './modules/token-state.js';
+import { WolfPopupSendFlow } from './modules/send-flow.js';
+import { WolfPopupUiState } from './modules/ui-state.js';
+import { WolfPopupDappApproval } from './modules/dapp-approval.js';
+import { WolfPopupAccounts } from './modules/accounts.js';
+import { WolfPopupRefreshLoop } from './modules/refresh-loop.js';
+import { WolfPopupSwMessaging } from './modules/sw-messaging.js';
+import { WolfPopupBootstrap } from './modules/bootstrap.js';
+import { WolfPopupSettings } from './modules/settings.js';
+// popup-utils.js and backup-seed.js register their functions on globalThis
+import './modules/popup-utils.js';
+import './modules/backup-seed.js';
+
+// ── Module references (short aliases for wiring below) ──────────────────
+const PopupState = WolfPopupSharedState;
+const NS = WolfPopupNetworkState;
+const TxHistory = WolfPopupTxHistory;
+const TokenState = WolfPopupTokenState;
+const SendFlow = WolfPopupSendFlow;
+const UiState = WolfPopupUiState;
+const DappApproval = WolfPopupDappApproval;
+const Accounts = WolfPopupAccounts;
+const RefreshLoop = WolfPopupRefreshLoop;
+const SwMsg = WolfPopupSwMessaging;
+const Bootstrap = WolfPopupBootstrap;
+const Storage = WolfPopupStorage;
+const UiMessages = WolfPopupUiMessages;
+const Settings = WolfPopupSettings;
+const Avatar = WolfPopupAvatar;
+const Clipboard = WolfPopupClipboard;
 
 // ── Short aliases for frequently used functions ─────────────────────────
-const getLocal     = Storage.getLocal.bind(Storage);
-const setLocal     = Storage.setLocal.bind(Storage);
-const getSession   = Storage.getSession.bind(Storage);
-const setSession   = Storage.setSession.bind(Storage);
-const showError    = UiMessages.showError.bind(UiMessages);
-const setStatus    = UiMessages.setStatus.bind(UiMessages);
+const getLocal = Storage.getLocal.bind(Storage);
+const setLocal = Storage.setLocal.bind(Storage);
+const getSession = Storage.getSession.bind(Storage);
+const setSession = Storage.setSession.bind(Storage);
+const showError = UiMessages.showError.bind(UiMessages);
+const setStatus = UiMessages.setStatus.bind(UiMessages);
 const clearMessages = UiMessages.clearMessages.bind(UiMessages);
-const setLoading   = UiMessages.setLoading.bind(UiMessages);
-const setAvatar    = Avatar.setAvatar.bind(Avatar);
-const copyText     = Clipboard.copyText.bind(Clipboard);
+const setLoading = UiMessages.setLoading.bind(UiMessages);
+const setAvatar = Avatar.setAvatar.bind(Avatar);
+const copyText = Clipboard.copyText.bind(Clipboard);
 
 // ── Runtime state (synced to PopupState via defineProperties) ───────────
 let provider = null;
@@ -50,84 +68,45 @@ let selectedNetwork = NS.DEFAULT_NETWORK_KEY;
 let rpcByNetwork = {};
 
 Object.defineProperties(PopupState, {
-  provider:           { configurable: true, get: () => provider,           set: (v) => { provider = v; } },
-  activeAccountIndex: { configurable: true, get: () => activeAccountIndex, set: (v) => { activeAccountIndex = v; } },
-  selectedChain:      { configurable: true, get: () => NS.DEFAULT_CHAIN_KEY, set: () => {} },
-  selectedNetwork:    { configurable: true, get: () => selectedNetwork,    set: (v) => { selectedNetwork = v; } },
-  rpcByNetwork:       { configurable: true, get: () => rpcByNetwork,      set: (v) => { rpcByNetwork = v; } },
+  provider: {
+    configurable: true,
+    get: () => provider,
+    set: (v) => {
+      provider = v;
+    },
+  },
+  activeAccountIndex: {
+    configurable: true,
+    get: () => activeAccountIndex,
+    set: (v) => {
+      activeAccountIndex = v;
+    },
+  },
+  selectedChain: { configurable: true, get: () => NS.DEFAULT_CHAIN_KEY, set: () => {} },
+  selectedNetwork: {
+    configurable: true,
+    get: () => selectedNetwork,
+    set: (v) => {
+      selectedNetwork = v;
+    },
+  },
+  rpcByNetwork: {
+    configurable: true,
+    get: () => rpcByNetwork,
+    set: (v) => {
+      rpcByNetwork = v;
+    },
+  },
 });
 
-// ── Provider cache ──────────────────────────────────────────────────────
-const _providerCache = new Map();
-function getOrCreatePopupProvider(rpcUrl) {
-  const key = String(rpcUrl || '').trim();
-  if (!key) return new ethers.JsonRpcProvider(rpcUrl);
-  const cached = _providerCache.get(key);
-  if (cached) return cached;
-  if (_providerCache.size >= 6) {
-    _providerCache.delete(_providerCache.keys().next().value);
-  }
-  const created = new ethers.JsonRpcProvider(key);
-  _providerCache.set(key, created);
-  return created;
-}
-globalThis.getOrCreatePopupProvider = getOrCreatePopupProvider;
-
-// ── Utility functions (used by multiple modules via globalThis) ─────────
-function formatAmount(value) {
-  if (typeof WalletCore.formatAmount === 'function') return WalletCore.formatAmount(value);
-  if (value === 0) return '0';
-  const abs = Math.abs(value);
-  let s;
-  if      (abs >= 1000)    s = value.toFixed(2);
-  else if (abs >= 1)       s = value.toFixed(4);
-  else if (abs >= 0.000001) s = value.toFixed(6);
-  else                     return '< 0.000001';
-  return s.replace(/\.?0+$/, '');
-}
-
-function shortAddr(addr) {
-  if (typeof WalletCore.shortAddr === 'function') return WalletCore.shortAddr(addr);
-  return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
-}
-
-function getTxScopeKey(address, networkKey = selectedNetwork) {
-  return typeof WalletCore.getTxScopeKey === 'function'
-    ? WalletCore.getTxScopeKey(address, networkKey)
-    : `${networkKey}:${String(address).toLowerCase()}`;
-}
-
-function getTxExplorerBaseUrl(networkKey = selectedNetwork) {
-  return typeof WalletCore.getTxExplorerBaseUrl === 'function'
-    ? WalletCore.getTxExplorerBaseUrl(networkKey)
-    : (networkKey === 'eth-sepolia' ? 'https://sepolia.etherscan.io/tx/'
-       : networkKey === 'bsc' ? 'https://bscscan.com/tx/'
-       : 'https://etherscan.io/tx/');
-}
-
-function getTokenLogoUrls(tokenAddress, networkKey = selectedNetwork) {
-  if (!tokenAddress) return [];
-  if (!String(networkKey).startsWith('eth-') && networkKey !== 'bsc') return [];
-  try {
-    const checksum = ethers.getAddress(tokenAddress);
-    if (typeof WalletCore.getTokenLogoUrls === 'function') return WalletCore.getTokenLogoUrls(checksum, networkKey);
-    const lower = checksum.toLowerCase();
-    const chain = networkKey === 'bsc' ? 'smartchain' : 'ethereum';
-    return [
-      `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain}/assets/${checksum}/logo.png`,
-      `https://tokens.1inch.io/${lower}.png`,
-    ];
-  } catch { return []; }
-}
-
-// ── Small self-contained functions ──────────────────────────────────────
+// ── Runtime state (synced to PopupState via defineProperties) ───────────
 async function copyAddress() {
   const { accounts } = await getLocal(['accounts']);
   const address = accounts[activeAccountIndex]?.address;
   if (!address) return;
   await copyText(address);
   const btn = document.querySelector('.copy-btn');
-  const originalNodes = Array.from(btn.childNodes).map(n => n.cloneNode(true));
+  const originalNodes = Array.from(btn.childNodes).map((n) => n.cloneNode(true));
   btn.textContent = '';
   const tick = document.createElement('span');
   tick.style.cssText = 'font-size:12px;color:#4ade80';
@@ -135,12 +114,14 @@ async function copyAddress() {
   btn.appendChild(tick);
   setTimeout(() => {
     btn.textContent = '';
-    originalNodes.forEach(n => btn.appendChild(n));
+    originalNodes.forEach((n) => btn.appendChild(n));
   }, 1500);
 }
 
 async function resetWallet() {
-  const ok = confirm('Удалить кошелёк с этого устройства?\n\nВосстановить можно только по мнемонической фразе.');
+  const ok = confirm(
+    'Удалить кошелёк с этого устройства?\n\nВосстановить можно только по мнемонической фразе.',
+  );
   if (!ok) return;
   await chrome.storage.local.clear();
   await chrome.storage.session.clear();
@@ -175,61 +156,82 @@ async function setNetwork(networkKey) {
 // добавляет оставшиеся wrappers:
 
 // Navigation
-globalThis.showScreen         = (...a) => UiState.showScreen(...a);
-globalThis.switchTab           = (...a) => UiState.switchTab(...a);
-globalThis.switchWalletTab     = (...a) => UiState.switchWalletTab(...a);
+globalThis.showScreen = (...a) => UiState.showScreen(...a);
+globalThis.switchTab = (...a) => UiState.switchTab(...a);
+globalThis.switchWalletTab = (...a) => UiState.switchWalletTab(...a);
 
 // Network
-globalThis.toggleCustomKey     = () => NS.toggleCustomKey();
+globalThis.toggleCustomKey = () => NS.toggleCustomKey();
 globalThis.toggleNetworkPicker = (...a) => NS.toggleNetworkPicker(...a);
 globalThis.selectNetworkOption = (...a) => NS.selectNetworkOption(...a);
-globalThis.setNetwork          = setNetwork;
-globalThis.updateNetworkBadge  = () => NS.updateNetworkBadge();
+globalThis.setNetwork = setNetwork;
+globalThis.updateNetworkBadge = () => NS.updateNetworkBadge();
 
 // Wallet create/import (already on globalThis from module, but alias for safety)
-globalThis.createWallet        = () => globalThis.WolfPopupWalletCreateImport.createWallet();
-globalThis.importWallet        = () => globalThis.WolfPopupWalletCreateImport.importWallet();
+globalThis.createWallet = () => globalThis.WolfPopupWalletCreateImport.createWallet();
+globalThis.importWallet = () => globalThis.WolfPopupWalletCreateImport.importWallet();
 
 // Token
-globalThis.loadTokenBalances   = (...a) => TokenState.loadTokenBalances(...a);
-globalThis.onTokenAddrChange   = () => TokenState.onTokenAddrChange();
-globalThis.fetchTokenInfo      = () => TokenState.fetchTokenInfo();
-globalThis.addToken            = () => TokenState.addToken();
-globalThis.removeToken         = (...a) => TokenState.removeToken(...a);
+globalThis.loadTokenBalances = (...a) => TokenState.loadTokenBalances(...a);
+globalThis.onTokenAddrChange = () => TokenState.onTokenAddrChange();
+globalThis.fetchTokenInfo = () => TokenState.fetchTokenInfo();
+globalThis.addToken = () => TokenState.addToken();
+globalThis.removeToken = (...a) => TokenState.removeToken(...a);
 globalThis.getTokensForSelectedNetwork = () => TokenState.getTokensForSelectedNetwork();
-globalThis.getTokenLogoUrls    = getTokenLogoUrls;
 
 // Tx history
-globalThis.loadTransactions    = (...a) => TxHistory.loadTransactions(...a);
-globalThis.changeTxPage        = (...a) => TxHistory.changeTxPage(...a);
-globalThis.copyTxHash          = (...a) => TxHistory.copyTxHash(...a);
-globalThis.getTxScopeKey       = getTxScopeKey;
-globalThis.getTxExplorerBaseUrl = getTxExplorerBaseUrl;
+globalThis.loadTransactions = (...a) => TxHistory.loadTransactions(...a);
+globalThis.changeTxPage = (...a) => TxHistory.changeTxPage(...a);
+globalThis.copyTxHash = (...a) => TxHistory.copyTxHash(...a);
 
 // Send
-globalThis.showSendScreen      = () => SendFlow.showSendScreen();
-globalThis.resetSendFlowUI     = (...a) => SendFlow.resetSendFlowUI(...a);
-globalThis.sendTransaction     = () => SendFlow.sendTransaction();
-globalThis.confirmSend         = () => SendFlow.confirmSend();
-globalThis.cancelSend          = () => SendFlow.cancelSend();
+globalThis.showSendScreen = () => SendFlow.showSendScreen();
+globalThis.resetSendFlowUI = (...a) => SendFlow.resetSendFlowUI(...a);
+globalThis.sendTransaction = () => SendFlow.sendTransaction();
+globalThis.confirmSend = () => SendFlow.confirmSend();
+globalThis.cancelSend = () => SendFlow.cancelSend();
 
 // Balance
-globalThis.refreshBalance      = () => RefreshLoop.refreshBalance();
+globalThis.refreshBalance = () => RefreshLoop.refreshBalance();
 
 // Misc
-globalThis.copyAddress         = copyAddress;
-globalThis.resetWallet         = resetWallet;
-globalThis.openConnectedSites  = openConnectedSites;
+globalThis.copyAddress = copyAddress;
+globalThis.resetWallet = resetWallet;
+globalThis.openConnectedSites = openConnectedSites;
 globalThis.saveEtherscanKeyFromInput = saveEtherscanKeyFromInput;
-globalThis.formatAmount        = formatAmount;
-globalThis.shortAddr           = shortAddr;
 
 // Network delegations (used by modules and event-binder)
-globalThis.getRpcUrlForNetwork     = (...a) => NS.getRpcUrlForNetwork(...a);
-globalThis.getCurrentNetworkMeta   = () => NS.getCurrentNetworkMeta();
-globalThis.getNativeAssetSymbol    = (...a) => NS.getNativeAssetSymbol(...a);
-globalThis.ensureMainnetSendGuard  = () => NS.ensureMainnetSendGuard();
-globalThis.syncNetworkControls     = () => NS.syncNetworkControls();
+globalThis.getRpcUrlForNetwork = (...a) => NS.getRpcUrlForNetwork(...a);
+globalThis.getCurrentNetworkMeta = () => NS.getCurrentNetworkMeta();
+globalThis.getNativeAssetSymbol = (...a) => NS.getNativeAssetSymbol(...a);
+globalThis.ensureMainnetSendGuard = () => NS.ensureMainnetSendGuard();
+globalThis.syncNetworkControls = () => NS.syncNetworkControls();
+
+// Settings (wired via data-onclick in popup.html)
+globalThis.setAppLang = (...a) => Settings.setAppLang(...a);
+globalThis.settingsToggleCustomKey = () => Settings.settingsToggleCustomKey();
+globalThis.settingsSaveKeys = () => Settings.settingsSaveKeys();
+
+// 1.5: Auto-lock timeout
+globalThis.setAutoLockMinutes = async function (minutes) {
+  await setLocal({ autoLockMinutes: minutes });
+  // Обновляем UI кнопок
+  document.querySelectorAll('.autolock-option').forEach((btn) => {
+    btn.classList.toggle('active', parseInt(btn.dataset.minutes, 10) === minutes);
+  });
+  // Если сессия активна — обновляем alarm в SW
+  const sendToSW = globalThis.sendToSW;
+  if (typeof sendToSW === 'function') sendToSW({ type: MessageType.RESET_LOCK_TIMER });
+};
+
+// Инициализация auto-lock picker при загрузке settings
+globalThis._initAutoLockPicker = async function () {
+  const { autoLockMinutes = 5 } = await getLocal(['autoLockMinutes']);
+  const val = parseInt(autoLockMinutes, 10) || 5;
+  document.querySelectorAll('.autolock-option').forEach((btn) => {
+    btn.classList.toggle('active', parseInt(btn.dataset.minutes, 10) === val);
+  });
+};
 
 // ── Bootstrap ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => Bootstrap.init());

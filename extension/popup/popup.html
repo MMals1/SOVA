@@ -1,368 +1,885 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <title>SOVA Wallet</title>
-  <link rel="stylesheet" href="popup.css" />
-</head>
-<body>
-<div id="app">
-  <div class="global-avatar" aria-hidden="true">
-    <img src="logo_new.png" alt="" />
-  </div>
-
-  <!-- ══ Экран 1: Setup ══ -->
-  <div class="screen active" id="screen-setup">
-    <div class="brand-row">
-      <h1 class="brand-title">SOVA Wallet</h1>
-    </div>
-    <p class="sub">Ethereum networks</p>
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="import" data-onclick="switchTab('import')">Войти</button>
-      <button class="tab-btn"        data-tab="create" data-onclick="switchTab('create')">Создать</button>
-    </div>
-    <div class="tab-content active" id="tab-import">
-      <div class="field">
-        <label>Мнемоническая фраза (12 слов)</label>
-        <textarea id="import-mnemonic" placeholder="word1 word2 word3 …"></textarea>
-      </div>
-      <div class="field">
-        <label>Пароль</label>
-        <input type="password" id="import-password" placeholder="Минимум 8 символов" />
-        <p class="hint">Шифрует ключ локально — никуда не уходит</p>
-      </div>
-      <button class="btn-primary" id="btn-import" data-onclick="importWallet()">Войти</button>
-      <div class="feedback-mount" data-feedback-prefix="import" data-feedback-types="error,status"></div>
-    </div>
-    <div class="tab-content" id="tab-create">
-      <div class="field">
-        <label>Пароль нового кошелька</label>
-        <input type="password" id="create-password" placeholder="Минимум 8 символов" />
-        <p class="hint">Шифрует ключ локально — никуда не уходит</p>
-      </div>
-      <button class="btn-primary" id="btn-create" data-onclick="createWallet()">Создать кошелёк</button>
-      <div class="feedback-mount" data-feedback-prefix="create" data-feedback-types="error,status"></div>
-    </div>
-
-    <!-- API ключ — общий для обоих табов -->
-    <div class="api-key-section">
-      <div class="network-switch-group">
-        <label>Сеть</label>
-        <div class="network-picker" id="network-picker-setup"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>SOVA Wallet</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="global-avatar" aria-hidden="true">
+        <img src="logo_new.png" alt="" />
       </div>
 
-      <label class="api-key-label">
-        <input type="checkbox" id="use-default-key" checked data-onchange="toggleCustomKey()" />
-        <span>Использовать публичный RPC (publicnode)</span>
-      </label>
-      <div id="custom-key-field" class="hidden-custom-key">
-        <div class="field tight-field">
-          <label>RPC URL (активная сеть)</label>
-          <input type="text" id="custom-rpc-url"
-                 placeholder="https://eth-mainnet.g.alchemy.com/v2/ВАШ_КЛЮЧ"
-                 autocomplete="off" spellcheck="false" />
+      <!-- ══ Экран 1: Setup ══ -->
+      <div class="screen active" id="screen-setup">
+        <div class="brand-row">
+          <h1 class="brand-title">SOVA Wallet</h1>
         </div>
-        <p class="hint">
-          <a href="https://drpc.org" target="_blank" rel="noopener noreferrer">DRPC</a> ·
-          <a href="https://llamarpc.com" target="_blank" rel="noopener noreferrer">Llamanodes</a> ·
-          <a href="https://www.ankr.com/rpc/" target="_blank" rel="noopener noreferrer">Ankr</a> ·
-          <a href="https://1rpc.io" target="_blank" rel="noopener noreferrer">1RPC</a> ·
-          <a href="https://chainstack.com" target="_blank" rel="noopener noreferrer">Chainstack</a> ·
-          <a href="https://alchemy.com" target="_blank" rel="noopener noreferrer">Alchemy</a> ·
-          <a href="https://infura.io" target="_blank" rel="noopener noreferrer">Infura</a> ·
-          <a href="https://quiknode.pro" target="_blank" rel="noopener noreferrer">QuikNode</a>
-        </p>
-      </div>
-
-      <!-- Etherscan V2 API key: опционально. Для ETH mainnet/Sepolia история
-           работает через публичный Blockscout без ключа. Ключ нужен только
-           для BSC или если хочется единый провайдер. -->
-      <div class="field tight-field etherscan-key-field">
-        <label>Etherscan API ключ <span class="hint-inline">(опционально, нужен для истории BSC)</span></label>
-        <div class="etherscan-key-row">
-          <input type="text" id="etherscan-api-key"
-                 placeholder="Вставьте Etherscan API ключ — бесплатно"
-                 autocomplete="off" spellcheck="false" />
-          <button type="button" class="btn-ghost btn-compact"
-                  id="btn-save-etherscan-key"
-                  data-onclick="saveEtherscanKeyFromInput()">Сохранить</button>
+        <p class="sub">Ethereum networks</p>
+        <div class="tabs">
+          <button
+            class="tab-btn active"
+            data-tab="import"
+            data-onclick="switchTab('import')"
+            data-lang="tabLogin"
+          >
+            Войти
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="create"
+            data-onclick="switchTab('create')"
+            data-lang="tabCreate"
+          >
+            Создать
+          </button>
         </div>
-        <p class="hint">
-          <a href="https://etherscan.io/myapikey" target="_blank" rel="noopener noreferrer">Получить ключ</a>
-          · Один ключ работает для ETH, Sepolia, BSC и других сетей.
-        </p>
+        <div class="tab-content active" id="tab-import">
+          <div class="field">
+            <label data-lang="labelMnemonic">Мнемоническая фраза (12 слов)</label>
+            <textarea id="import-mnemonic" placeholder="word1 word2 word3 …"></textarea>
+          </div>
+          <div class="field">
+            <label data-lang="labelPassword">Пароль</label>
+            <input type="password" id="import-password" placeholder="Минимум 8 символов" />
+            <p class="hint" data-lang="hintEncrypt">Шифрует ключ локально — никуда не уходит</p>
+          </div>
+          <button
+            class="btn-primary"
+            id="btn-import"
+            data-onclick="importWallet()"
+            data-lang="btnLogin"
+          >
+            Войти
+          </button>
+          <div
+            class="feedback-mount"
+            data-feedback-prefix="import"
+            data-feedback-types="error,status"
+          ></div>
+        </div>
+        <div class="tab-content" id="tab-create">
+          <div class="field">
+            <label data-lang="labelNewPassword">Пароль нового кошелька</label>
+            <input type="password" id="create-password" placeholder="Минимум 8 символов" />
+            <p class="hint" data-lang="hintEncrypt">Шифрует ключ локально — никуда не уходит</p>
+          </div>
+          <button
+            class="btn-primary"
+            id="btn-create"
+            data-onclick="createWallet()"
+            data-lang="btnCreate"
+          >
+            Создать кошелёк
+          </button>
+          <div
+            class="feedback-mount"
+            data-feedback-prefix="create"
+            data-feedback-types="error,status"
+          ></div>
+        </div>
+
+        <div class="api-key-section">
+          <div class="network-switch-group">
+            <label data-lang="labelNetwork">Сеть</label>
+            <div class="network-picker" id="network-picker-setup"></div>
+          </div>
+
+          <label class="api-key-label">
+            <input type="checkbox" id="use-default-key" checked data-onchange="toggleCustomKey()" />
+            <span data-lang="labelUsePublicRpc">Использовать публичный RPC (publicnode)</span>
+          </label>
+          <div id="custom-key-field" class="hidden-custom-key">
+            <div class="field tight-field">
+              <label data-lang="labelRpcUrl">RPC URL (активная сеть)</label>
+              <input
+                type="text"
+                id="custom-rpc-url"
+                placeholder="https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <p class="hint">
+              <a href="https://drpc.org" target="_blank" rel="noopener noreferrer">DRPC</a> ·
+              <a href="https://llamarpc.com" target="_blank" rel="noopener noreferrer"
+                >Llamanodes</a
+              >
+              ·
+              <a href="https://www.ankr.com/rpc/" target="_blank" rel="noopener noreferrer">Ankr</a>
+              · <a href="https://1rpc.io" target="_blank" rel="noopener noreferrer">1RPC</a> ·
+              <a href="https://chainstack.com" target="_blank" rel="noopener noreferrer"
+                >Chainstack</a
+              >
+              ·
+              <a href="https://alchemy.com" target="_blank" rel="noopener noreferrer">Alchemy</a> ·
+              <a href="https://infura.io" target="_blank" rel="noopener noreferrer">Infura</a> ·
+              <a href="https://quiknode.pro" target="_blank" rel="noopener noreferrer">QuikNode</a>
+            </p>
+          </div>
+
+          <div class="field tight-field etherscan-key-field">
+            <label
+              ><span data-lang="labelEtherscanKey">Etherscan API ключ</span>
+              <span class="hint-inline" data-lang="hintEtherscanOptional"
+                >(опционально, нужен для истории BSC)</span
+              ></label
+            >
+            <div class="etherscan-key-row">
+              <input
+                type="text"
+                id="etherscan-api-key"
+                placeholder="Etherscan API key"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                type="button"
+                class="btn-ghost btn-compact"
+                id="btn-save-etherscan-key"
+                data-onclick="saveEtherscanKeyFromInput()"
+                data-lang="btnSaveKey"
+              >
+                Сохранить
+              </button>
+            </div>
+            <p class="hint">
+              <a href="https://etherscan.io/myapikey" target="_blank" rel="noopener noreferrer"
+                >Получить ключ</a
+              >
+              ·
+              <span data-lang="hintEtherscanLink"
+                >Один ключ работает для ETH, Sepolia, BSC и других сетей.</span
+              >
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══ Экран 2: Мнемоника ══ -->
-  <div class="screen" id="screen-mnemonic">
-    <h2>Сохраните фразу восстановления</h2>
-    <div class="warn-box">⚠️ Запишите эти 12 слов. Без них кошелёк нельзя восстановить. Фраза показывается <strong>один раз</strong>.</div>
-    <div class="mnemonic-box" id="mnemonic-display"></div>
-    <div class="row">
-      <button class="btn-ghost"   data-onclick="copyMnemonic()">Скопировать</button>
-      <button class="btn-primary" data-onclick="confirmMnemonic()">Я сохранил →</button>
-    </div>
-  </div>
-
-  <!-- ══ Экран 2б: Квиз на мнемонику ══ -->
-  <div class="screen" id="screen-quiz">
-    <h2>Проверка фразы</h2>
-    <p class="sub">Введите три слова по номерам, чтобы подтвердить что фраза сохранена</p>
-    <div id="quiz-inputs"></div>
-    <button class="btn-primary" id="btn-verify-quiz" data-onclick="verifyQuiz()">Подтвердить →</button>
-    <div class="error"  id="quiz-error"></div>
-    <button class="btn-ghost" data-onclick="backToMnemonic()">← Посмотреть фразу снова</button>
-  </div>
-
-  <!-- ══ Экран 3: Разблокировка ══ -->
-  <div class="screen" id="screen-unlock">
-    <div class="unlock-avatar-wrap">
-      <div class="avatar" id="unlock-avatar"></div>
-    </div>
-    <div class="brand-row center unlock-brand-row">
-      <h1 class="brand-title unlock-title">SOVA Wallet</h1>
-    </div>
-    <p class="sub unlock-address-center" id="unlock-address"></p>
-    <div class="field unlock-password-field">
-      <label>Пароль</label>
-      <input type="password" id="unlock-password" placeholder="Введите пароль"
-             data-onkeydown="if(event.key==='Enter') unlockWallet()" />
-    </div>
-    <button class="btn-primary" id="btn-unlock" data-onclick="unlockWallet()">Разблокировать</button>
-    <div class="feedback-mount" data-feedback-prefix="unlock" data-feedback-types="error,status"></div>
-    <button class="btn-danger" data-onclick="resetWallet()">Удалить кошелёк</button>
-  </div>
-
-  <!-- ══ Экран 4: Кошелёк ══ -->
-  <div class="screen" id="screen-wallet">
-    <!-- Шапка -->
-    <div class="wallet-header acct-menu-wrap">
-      <div class="avatar" id="wallet-avatar" data-onclick="toggleAccountMenu()" title="Аккаунты"></div>
-      <div class="header-info">
-        <div class="header-acct-name" id="header-acct-name"></div>
-        <div class="address-row">
-          <span class="address-text" id="wallet-address"></span>
-          <button class="copy-btn" data-onclick="copyAddress()" title="Копировать адрес">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
+      <!-- ══ Экран 2: Мнемоника ══ -->
+      <div class="screen" id="screen-mnemonic">
+        <h2 data-lang="titleMnemonic">Сохраните фразу восстановления</h2>
+        <div class="warn-box" data-lang="warnMnemonic">
+          ⚠️ Запишите эти 12 слов. Без них кошелёк нельзя восстановить.
+        </div>
+        <div class="mnemonic-box" id="mnemonic-display"></div>
+        <div class="row">
+          <button class="btn-ghost" data-onclick="copyMnemonic()" data-lang="btnCopy">
+            Скопировать
+          </button>
+          <button class="btn-primary" data-onclick="confirmMnemonic()" data-lang="btnSaved">
+            Я сохранил →
           </button>
         </div>
       </div>
-      <button class="lock-btn" data-onclick="lockWallet()">🔒</button>
-      <!-- Выпадающее меню аккаунтов -->
-      <div id="acct-menu" class="hidden">
-        <div id="acct-list"></div>
-        <div class="acct-menu-footer">
-          <button class="acct-menu-btn" data-onclick="showScreen('screen-add-account')">➕ Добавить субаккаунт</button>
-          <button class="acct-menu-btn" data-onclick="showScreen('screen-setup')">🔑 Импортировать кошелёк</button>
-          <button class="acct-menu-btn" data-onclick="openConnectedSites()">🌐 Подключённые сайты</button>
+
+      <!-- ══ Экран 2б: Квиз ══ -->
+      <div class="screen" id="screen-quiz">
+        <h2 data-lang="titleQuiz">Проверка фразы</h2>
+        <p class="sub" data-lang="subtitleQuiz">
+          Введите слова по номерам, чтобы подтвердить что фраза сохранена
+        </p>
+        <div id="quiz-inputs"></div>
+        <button
+          class="btn-primary"
+          id="btn-verify-quiz"
+          data-onclick="verifyQuiz()"
+          data-lang="btnVerify"
+        >
+          Подтвердить →
+        </button>
+        <div class="error" id="quiz-error"></div>
+        <button class="btn-ghost" data-onclick="backToMnemonic()" data-lang="btnBackMnemonic">
+          ← Посмотреть фразу снова
+        </button>
+      </div>
+
+      <!-- ══ Экран 3: Разблокировка ══ -->
+      <div class="screen" id="screen-unlock">
+        <div class="unlock-avatar-wrap">
+          <div class="avatar" id="unlock-avatar"></div>
+        </div>
+        <div class="brand-row center unlock-brand-row">
+          <h1 class="brand-title unlock-title">SOVA Wallet</h1>
+        </div>
+        <p class="sub unlock-address-center" id="unlock-address"></p>
+        <div class="field unlock-password-field">
+          <label data-lang="labelUnlockPassword">Пароль</label>
+          <input
+            type="password"
+            id="unlock-password"
+            placeholder="Введите пароль"
+            data-onkeydown="if(event.key==='Enter') unlockWallet()"
+          />
+        </div>
+        <button
+          class="btn-primary"
+          id="btn-unlock"
+          data-onclick="unlockWallet()"
+          data-lang="btnUnlock"
+        >
+          Разблокировать
+        </button>
+        <div
+          class="feedback-mount"
+          data-feedback-prefix="unlock"
+          data-feedback-types="error,status"
+        ></div>
+        <button class="btn-danger" data-onclick="resetWallet()" data-lang="btnDeleteWallet">
+          Удалить кошелёк
+        </button>
+      </div>
+
+      <!-- ══ Экран 4: Кошелёк ══ -->
+      <div class="screen" id="screen-wallet">
+        <div class="wallet-header acct-menu-wrap">
+          <div
+            class="avatar"
+            id="wallet-avatar"
+            data-onclick="toggleAccountMenu()"
+            title="Аккаунты"
+          ></div>
+          <div class="header-info">
+            <div class="header-acct-name" id="header-acct-name"></div>
+            <div class="address-row">
+              <span class="address-text" id="wallet-address"></span>
+              <button class="copy-btn" data-onclick="copyAddress()" title="Copy">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button class="lock-btn" data-onclick="lockWallet()" title="Lock">🔒</button>
+          <button
+            class="settings-btn"
+            data-onclick="showScreen('screen-settings')"
+            title="Settings"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+          </button>
+          <div id="acct-menu" class="hidden">
+            <div id="acct-list"></div>
+            <div class="acct-menu-footer">
+              <button
+                class="acct-menu-btn"
+                data-onclick="showScreen('screen-add-account')"
+                data-lang="menuAddSubaccount"
+              >
+                ➕ Добавить субаккаунт
+              </button>
+              <button
+                class="acct-menu-btn"
+                data-onclick="showScreen('screen-setup')"
+                data-lang="menuImportWallet"
+              >
+                🔑 Импортировать кошелёк
+              </button>
+              <button class="acct-menu-btn" data-onclick="showLedgerScreen()">
+                🔐 Подключить Ledger
+              </button>
+              <button
+                class="acct-menu-btn"
+                data-onclick="openConnectedSites()"
+                data-lang="menuConnectedSites"
+              >
+                🌐 Подключённые сайты
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="balance-block">
+          <div class="balance-row">
+            <span class="balance-amount" id="wallet-balance">—</span>
+            <span class="balance-unit" id="wallet-balance-unit">ETH</span>
+            <button class="refresh-btn" data-onclick="refreshBalance()" title="Refresh">↻</button>
+            <span
+              class="balance-refresh-indicator"
+              id="balance-refresh-indicator"
+              data-lang="statusUpdating"
+              >Обновление…</span
+            >
+          </div>
+          <div class="network-badge" id="network-badge">Sepolia testnet</div>
+          <div class="network-switch-group network-switch-group-compact">
+            <div class="network-picker" id="network-picker-wallet"></div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" data-onclick="showSendScreen()" data-lang="btnSend">
+            ↑ Отправить
+          </button>
+          <button
+            class="btn-ghost"
+            data-onclick="showScreen('screen-add-token')"
+            data-lang="btnAddToken"
+          >
+            + Токен
+          </button>
+        </div>
+        <div class="wallet-tabs">
+          <button
+            class="tab-btn active"
+            data-tab="tokens"
+            data-onclick="switchWalletTab('tokens')"
+            data-lang="tabTokens"
+          >
+            Токены
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="history"
+            data-onclick="switchWalletTab('history')"
+            data-lang="tabHistory"
+          >
+            История
+          </button>
+        </div>
+        <div class="wallet-tab-content active" id="wallet-tab-tokens">
+          <div id="token-list"><p class="empty" data-lang="statusLoading">Загрузка…</p></div>
+        </div>
+        <div class="wallet-tab-content" id="wallet-tab-history">
+          <div class="section-title-row">
+            <div class="section-title" data-lang="titleTransactions">Транзакции</div>
+            <div class="tx-refresh-indicator" id="tx-refresh-indicator" data-lang="statusUpdating">
+              Обновление…
+            </div>
+          </div>
+          <div id="tx-list"><p class="empty" data-lang="statusLoading">Загрузка…</p></div>
+          <div class="tx-pagination tx-pagination-hidden" id="tx-pagination">
+            <button
+              type="button"
+              class="tx-page-btn"
+              id="tx-page-prev"
+              data-onclick="changeTxPage(-1)"
+              data-lang="paginationPrev"
+            >
+              ← Назад
+            </button>
+            <div class="tx-page-info" id="tx-page-info">Страница 1 / 1</div>
+            <button
+              type="button"
+              class="tx-page-btn"
+              id="tx-page-next"
+              data-onclick="changeTxPage(1)"
+              data-lang="paginationNext"
+            >
+              Вперед →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Экран 5: Отправка ══ -->
+      <div class="screen" id="screen-send">
+        <button class="back-btn" data-onclick="showScreen('screen-wallet')" data-lang="btnBack">
+          ← Назад
+        </button>
+        <h2 data-lang="titleSend">Отправить</h2>
+        <div class="field">
+          <label data-lang="labelAsset">Актив</label>
+          <div class="asset-picker" id="send-asset-picker">
+            <button type="button" class="asset-picker-trigger" id="send-asset-trigger">
+              <span class="asset-picker-label" id="send-asset-label">ETH (Native)</span>
+              <span class="asset-picker-caret"></span>
+            </button>
+            <div class="asset-picker-menu" id="send-asset-menu"></div>
+          </div>
+          <input type="hidden" id="send-asset" value="ETH" />
+        </div>
+        <div class="field">
+          <label data-lang="labelRecipient">Адрес получателя</label>
+          <input id="send-to" placeholder="0x…" />
+        </div>
+        <div class="field">
+          <label data-lang="labelAmount">Сумма</label>
+          <input id="send-amount" type="number" step="0.0001" min="0" placeholder="0.001" />
+        </div>
+        <button
+          class="btn-primary"
+          id="btn-send"
+          data-onclick="sendTransaction()"
+          data-lang="btnSendTx"
+        >
+          Отправить
+        </button>
+        <div
+          class="feedback-mount"
+          data-feedback-prefix="send"
+          data-feedback-types="error,status,success"
+        ></div>
+      </div>
+
+      <!-- ══ Экран 5б: Подтверждение ══ -->
+      <div class="screen" id="screen-confirm-tx">
+        <button class="back-btn" data-onclick="cancelSend()" data-lang="btnBack">← Назад</button>
+        <h2 data-lang="titleConfirm">Подтверждение</h2>
+        <div class="confirm-details">
+          <div class="confirm-row">
+            <span class="confirm-label" data-lang="confirmRecipient">Получатель</span>
+            <span class="confirm-value mono" id="confirm-to"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label" data-lang="confirmAmount">Сумма</span>
+            <span class="confirm-value" id="confirm-amount"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label" data-lang="confirmAsset">Актив</span>
+            <span class="confirm-value" id="confirm-asset"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label" data-lang="confirmGas">Газ (оценка)</span>
+            <span class="confirm-value" id="confirm-gas-estimate"></span>
+          </div>
+          <div class="confirm-row total">
+            <span class="confirm-label" data-lang="confirmTotal">Итого</span>
+            <span class="confirm-value" id="confirm-total"></span>
+          </div>
+        </div>
+        <!-- 1.2: Предупреждение при отправке на новый адрес -->
+        <div id="new-recipient-warning" class="new-recipient-warning" style="display: none">
+          <span class="new-recipient-icon">⚠️</span>
+          <span class="new-recipient-text"
+            >Вы отправляете на этот адрес впервые. Проверьте первые и последние символы
+            адреса.</span
+          >
+        </div>
+        <!-- 1.1: Re-auth overlay для mainnet транзакций -->
+        <div id="reauth-overlay" class="reauth-overlay" style="display: none">
+          <div class="reauth-dialog">
+            <h3 class="reauth-title">Подтверждение mainnet-транзакции</h3>
+            <p class="reauth-hint">Введите пароль для отправки в основной сети</p>
+            <input
+              type="password"
+              id="reauth-password"
+              class="reauth-input"
+              placeholder="Пароль"
+              autocomplete="current-password"
+            />
+            <div id="reauth-error" class="reauth-error" style="display: none"></div>
+            <div class="row row-gap-16">
+              <button class="btn-ghost" id="reauth-cancel">Отмена</button>
+              <button class="btn-primary" id="reauth-confirm">Подтвердить</button>
+            </div>
+          </div>
+        </div>
+        <div class="row row-gap-16">
+          <button class="btn-ghost" data-onclick="cancelSend()" data-lang="btnCancel">
+            Отмена
+          </button>
+          <button
+            class="btn-primary"
+            id="btn-confirm-send"
+            data-onclick="confirmSend()"
+            data-lang="btnConfirmSend"
+          >
+            Подтвердить
+          </button>
+        </div>
+        <div
+          class="feedback-mount"
+          data-feedback-prefix="confirm"
+          data-feedback-types="error,status,success"
+        ></div>
+      </div>
+
+      <!-- ══ Экран 6: Добавить токен ══ -->
+      <div class="screen" id="screen-add-token">
+        <button class="back-btn" data-onclick="showScreen('screen-wallet')" data-lang="btnBack">
+          ← Назад
+        </button>
+        <h2 data-lang="titleAddToken">Добавить ERC-20 токен</h2>
+        <div class="field">
+          <label data-lang="labelContractAddress">Адрес контракта</label>
+          <div class="token-address-row">
+            <input
+              class="token-address-input"
+              id="token-address"
+              placeholder="0x…"
+              data-oninput="onTokenAddrChange()"
+            />
+            <button
+              class="btn-ghost btn-sm fetch-token-btn"
+              id="btn-fetch-token"
+              data-onclick="fetchTokenInfo()"
+              disabled
+              data-lang="btnFetchToken"
+            >
+              Загрузить ↓
+            </button>
+          </div>
+        </div>
+        <div class="token-form-row">
+          <div class="field">
+            <label data-lang="labelSymbol">Символ</label>
+            <input id="token-symbol" placeholder="USDC" />
+          </div>
+          <div class="field">
+            <label data-lang="labelDecimals">Decimals</label>
+            <input id="token-decimals" type="number" value="18" min="0" max="18" />
+          </div>
+        </div>
+        <button class="btn-primary" data-onclick="addToken()" data-lang="btnAddTokenAction">
+          Добавить токен
+        </button>
+        <div
+          class="feedback-mount"
+          data-feedback-prefix="add-token"
+          data-feedback-types="error,status"
+        ></div>
+      </div>
+
+      <!-- ══ Экран 7: Субаккаунт ══ -->
+      <div class="screen" id="screen-add-account">
+        <button class="back-btn" data-onclick="showScreen('screen-wallet')" data-lang="btnBack">
+          ← Назад
+        </button>
+        <h2 data-lang="titleSubaccount">Новый субаккаунт</h2>
+        <p class="sub" data-lang="subtitleSubaccount">
+          Субаккаунты выводятся из той же мнемоники по пути BIP-44. Введите пароль основного
+          аккаунта.
+        </p>
+        <div class="field">
+          <label data-lang="labelMainPassword">Пароль основного аккаунта</label>
+          <input
+            type="password"
+            id="add-account-password"
+            placeholder="Введите пароль"
+            data-onkeydown="if(event.key==='Enter') addSubAccount()"
+          />
+        </div>
+        <button
+          class="btn-primary"
+          id="btn-add-account"
+          data-onclick="addSubAccount()"
+          data-lang="btnCreateSubaccount"
+        >
+          Создать субаккаунт
+        </button>
+        <div
+          class="feedback-mount"
+          data-feedback-prefix="add-account"
+          data-feedback-types="error,status"
+        ></div>
+      </div>
+
+      <!-- ══ Экран 8: dApp approval ══ -->
+      <div class="screen" id="screen-dapp-approval">
+        <div class="dapp-approval-header">
+          <div class="dapp-origin-row">
+            <div class="dapp-origin-badge">🌐</div>
+            <div class="dapp-origin-info">
+              <div class="dapp-origin" id="dapp-origin">—</div>
+              <div class="dapp-subtitle" id="dapp-subtitle" data-lang="dappSubtitleLoading">
+                Загрузка…
+              </div>
+            </div>
+          </div>
+          <div class="dapp-method-label" id="dapp-method-label">—</div>
+          <div class="dapp-expiry-timer" id="dapp-expiry-timer"></div>
+        </div>
+        <div class="dapp-approval-body" id="dapp-approval-body">
+          <p class="dapp-hint" data-lang="dappSubtitleLoading">Загрузка…</p>
+        </div>
+        <div class="dapp-approval-actions" id="dapp-approval-actions">
+          <button type="button" class="btn-ghost" id="dapp-btn-reject" data-lang="dappBtnReject">
+            Отклонить
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            id="dapp-btn-approve"
+            data-lang="dappBtnApprove"
+          >
+            Одобрить
+          </button>
+        </div>
+      </div>
+
+      <!-- ══ Экран 9: Connected Sites ══ -->
+      <div class="screen" id="screen-connected-sites">
+        <button class="back-btn" data-onclick="showScreen('screen-wallet')" data-lang="btnBack">
+          ← Назад
+        </button>
+        <h2 data-lang="titleConnectedSites">Подключённые сайты</h2>
+        <p class="sub" data-lang="subtitleConnectedSites">
+          Сайты, которые имеют доступ к вашему адресу и могут запрашивать подпись.
+        </p>
+        <div id="connected-sites-list" class="connected-sites-list"></div>
+      </div>
+
+      <!-- ══ Экран 10: Настройки ══ -->
+      <div class="screen" id="screen-settings">
+        <button class="back-btn" data-onclick="showScreen('screen-wallet')" data-lang="btnBack">
+          ← Назад
+        </button>
+        <h2 data-lang="titleSettings">Настройки</h2>
+
+        <!-- Язык -->
+        <div class="settings-section">
+          <div class="settings-section-title" data-lang="settingsLangTitle">Язык / Language</div>
+          <div class="lang-toggle-row">
+            <button
+              type="button"
+              class="lang-btn-option active"
+              id="lang-btn-ru"
+              data-onclick="setAppLang('ru')"
+            >
+              Русский
+            </button>
+            <button
+              type="button"
+              class="lang-btn-option"
+              id="lang-btn-en"
+              data-onclick="setAppLang('en')"
+            >
+              English
+            </button>
+          </div>
+        </div>
+
+        <!-- API ключи -->
+        <div class="settings-section">
+          <div class="settings-section-title" data-lang="settingsApiTitle">API ключи</div>
+          <div class="network-switch-group">
+            <label data-lang="labelNetwork">Сеть</label>
+            <div class="network-picker" id="network-picker-settings"></div>
+          </div>
+          <label class="api-key-label">
+            <input
+              type="checkbox"
+              id="settings-use-default-key"
+              checked
+              data-onchange="settingsToggleCustomKey()"
+            />
+            <span data-lang="labelUsePublicRpc">Использовать публичный RPC (publicnode)</span>
+          </label>
+          <div id="settings-custom-key-field" class="hidden-custom-key">
+            <div class="field tight-field">
+              <label data-lang="labelRpcUrl">RPC URL (активная сеть)</label>
+              <input
+                type="text"
+                id="settings-custom-rpc-url"
+                placeholder="https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+          </div>
+          <div class="field tight-field etherscan-key-field">
+            <label
+              ><span data-lang="labelEtherscanKey">Etherscan API ключ</span>
+              <span class="hint-inline" data-lang="hintEtherscanOptional"
+                >(опционально)</span
+              ></label
+            >
+            <div class="etherscan-key-row">
+              <input
+                type="text"
+                id="settings-etherscan-key"
+                placeholder="Etherscan API key"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                type="button"
+                class="btn-ghost btn-compact"
+                data-onclick="settingsSaveKeys()"
+                data-lang="btnSaveKey"
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Подключённые сайты -->
+        <div class="settings-section">
+          <div class="settings-section-title" data-lang="settingsSitesTitle">
+            Подключённые сайты
+          </div>
+          <p class="sub" data-lang="settingsSitesDesc">Сайты с доступом к вашему адресу.</p>
+          <div id="settings-connected-sites-list" class="connected-sites-list"></div>
+        </div>
+
+        <!-- 1.5: Auto-lock timeout -->
+        <div class="settings-section">
+          <div class="settings-section-title">Автоблокировка</div>
+          <p class="sub">Кошелёк заблокируется автоматически после бездействия.</p>
+          <div class="autolock-picker">
+            <button
+              type="button"
+              class="autolock-option"
+              data-minutes="1"
+              data-onclick="setAutoLockMinutes(1)"
+            >
+              1 мин
+            </button>
+            <button
+              type="button"
+              class="autolock-option active"
+              data-minutes="5"
+              data-onclick="setAutoLockMinutes(5)"
+            >
+              5 мин
+            </button>
+            <button
+              type="button"
+              class="autolock-option"
+              data-minutes="15"
+              data-onclick="setAutoLockMinutes(15)"
+            >
+              15 мин
+            </button>
+            <button
+              type="button"
+              class="autolock-option"
+              data-minutes="30"
+              data-onclick="setAutoLockMinutes(30)"
+            >
+              30 мин
+            </button>
+          </div>
+        </div>
+
+        <!-- 1.3: Дневной лимит расходов -->
+        <div class="settings-section">
+          <div class="settings-section-title">Дневной лимит</div>
+          <p class="sub">Превышение лимита потребует повторного ввода пароля (mainnet).</p>
+          <div class="daily-limit-row">
+            <input
+              type="number"
+              id="settings-daily-limit"
+              min="0"
+              step="0.01"
+              placeholder="0.1"
+              class="daily-limit-input"
+            />
+            <span class="daily-limit-unit" id="settings-daily-limit-unit">ETH / день</span>
+            <button
+              type="button"
+              class="btn-ghost btn-compact"
+              data-onclick="settingsSaveDailyLimit()"
+            >
+              Сохранить
+            </button>
+          </div>
+          <p class="sub daily-limit-status" id="settings-daily-spent"></p>
+        </div>
+
+        <!-- 1.4: Бэкап seed phrase -->
+        <div class="settings-section">
+          <div class="settings-section-title">Фраза восстановления</div>
+          <p class="sub">Экспортируйте seed phrase для резервного копирования.</p>
+          <button class="btn-ghost btn-sm" data-onclick="showBackupSeed()">
+            Показать seed phrase
+          </button>
+        </div>
+      </div>
+
+      <!-- ══ Экран: Ledger (6.1) ══ -->
+      <div class="screen" id="screen-ledger">
+        <button class="back-btn" data-onclick="showScreen('screen-wallet')">← Назад</button>
+        <h2>Ledger Hardware Wallet</h2>
+        <p class="sub">
+          Подключите Ledger Nano S/X/S Plus через USB и откройте приложение Ethereum.
+        </p>
+        <div class="ledger-connection">
+          <span class="ledger-status" id="ledger-status">⚪ Не подключён</span>
+          <button class="btn-primary" id="btn-ledger-connect" data-onclick="connectLedger()">
+            Подключить Ledger
+          </button>
+          <button
+            class="btn-ghost"
+            id="btn-ledger-disconnect"
+            data-onclick="disconnectLedger()"
+            style="display: none"
+          >
+            Отключить
+          </button>
+        </div>
+        <div
+          class="feedback-mount"
+          data-feedback-prefix="ledger"
+          data-feedback-types="error,status"
+        ></div>
+        <div id="ledger-addresses-section" style="display: none">
+          <div class="settings-section-title" style="margin-top: 16px">
+            Доступные адреса (m/44'/60'/0'/0/N)
+          </div>
+          <div id="ledger-address-list" class="ledger-address-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ Экран: Бэкап seed phrase (1.4) ══ -->
+      <div class="screen" id="screen-backup-seed">
+        <button class="back-btn" data-onclick="showScreen('screen-settings')">← Назад</button>
+        <h2>Фраза восстановления</h2>
+        <div class="warn-box">
+          ⚠️ Никому не показывайте эти слова. Любой, кто знает фразу, получит полный доступ к вашим
+          средствам.
+        </div>
+        <div id="backup-seed-auth" style="margin-top: 16px">
+          <label class="field-label">Введите пароль для подтверждения</label>
+          <input
+            type="password"
+            id="backup-seed-password"
+            class="reauth-input"
+            placeholder="Пароль"
+            autocomplete="current-password"
+          />
+          <div id="backup-seed-error" class="reauth-error" style="display: none"></div>
+          <button class="btn-primary" id="btn-backup-seed-unlock" data-onclick="unlockBackupSeed()">
+            Показать
+          </button>
+        </div>
+        <div id="backup-seed-display" style="display: none">
+          <div class="mnemonic-box seed-blurred" id="backup-mnemonic-display"></div>
+          <p class="sub seed-blur-hint" id="backup-blur-hint">Нажмите, чтобы показать</p>
+          <div class="row row-gap-16" style="margin-top: 12px">
+            <button class="btn-ghost btn-sm" id="btn-backup-copy" data-onclick="copyBackupSeed()">
+              Копировать
+            </button>
+            <button class="btn-ghost btn-sm" data-onclick="showScreen('screen-settings')">
+              Закрыть
+            </button>
+          </div>
+          <div id="backup-seed-status" class="feedback-success" style="display: none"></div>
         </div>
       </div>
     </div>
-    <!-- Баланс -->
-    <div class="balance-block">
-      <div class="balance-row">
-        <span class="balance-amount" id="wallet-balance">—</span>
-        <span class="balance-unit" id="wallet-balance-unit">ETH</span>
-        <button class="refresh-btn" data-onclick="refreshBalance()" title="Обновить">↻</button>
-        <span class="balance-refresh-indicator" id="balance-refresh-indicator">Обновление…</span>
-      </div>
-      <div class="network-badge" id="network-badge">Sepolia testnet</div>
-      <div class="network-switch-group network-switch-group-compact">
-        <div class="network-picker" id="network-picker-wallet"></div>
-      </div>
-    </div>
-    <!-- Действия -->
-    <div class="action-row">
-      <button class="btn-primary" data-onclick="showSendScreen()">↑ Отправить</button>
-      <button class="btn-ghost"   data-onclick="showScreen('screen-add-token')">+ Токен</button>
-    </div>
-    <!-- Табы -->
-    <div class="wallet-tabs">
-      <button class="tab-btn active" data-tab="tokens"  data-onclick="switchWalletTab('tokens')">Токены</button>
-      <button class="tab-btn"        data-tab="history" data-onclick="switchWalletTab('history')">История</button>
-    </div>
-    <div class="wallet-tab-content active" id="wallet-tab-tokens">
-      <div id="token-list"><p class="empty">Загрузка…</p></div>
-    </div>
-    <div class="wallet-tab-content" id="wallet-tab-history">
-      <div class="section-title-row">
-        <div class="section-title">Транзакции</div>
-        <div class="tx-refresh-indicator" id="tx-refresh-indicator">Обновление…</div>
-      </div>
-      <div id="tx-list"><p class="empty">Загрузка…</p></div>
-      <div class="tx-pagination tx-pagination-hidden" id="tx-pagination">
-        <button type="button" class="tx-page-btn" id="tx-page-prev" data-onclick="changeTxPage(-1)">← Назад</button>
-        <div class="tx-page-info" id="tx-page-info">Страница 1 / 1</div>
-        <button type="button" class="tx-page-btn" id="tx-page-next" data-onclick="changeTxPage(1)">Вперед →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ Экран 5: Отправка ══ -->
-  <div class="screen" id="screen-send">
-    <button class="back-btn" data-onclick="showScreen('screen-wallet')">← Назад</button>
-    <h2>Отправить</h2>
-    <div class="field">
-      <label>Актив</label>
-      <div class="asset-picker" id="send-asset-picker">
-        <button type="button" class="asset-picker-trigger" id="send-asset-trigger">
-          <span class="asset-picker-label" id="send-asset-label">ETH (Native)</span>
-          <span class="asset-picker-caret"></span>
-        </button>
-        <div class="asset-picker-menu" id="send-asset-menu"></div>
-      </div>
-      <input type="hidden" id="send-asset" value="ETH" />
-    </div>
-    <div class="field">
-      <label>Адрес получателя</label>
-      <input id="send-to" placeholder="0x…" />
-    </div>
-    <div class="field">
-      <label>Сумма</label>
-      <input id="send-amount" type="number" step="0.0001" min="0" placeholder="0.001" />
-    </div>
-    <button class="btn-primary" id="btn-send" data-onclick="sendTransaction()">Отправить</button>
-    <div class="feedback-mount" data-feedback-prefix="send" data-feedback-types="error,status,success"></div>
-  </div>
-
-  <!-- ══ Экран 5б: Подтверждение транзакции ══ -->
-  <div class="screen" id="screen-confirm-tx">
-    <button class="back-btn" data-onclick="cancelSend()">← Назад</button>
-    <h2>Подтверждение</h2>
-    <div class="confirm-details">
-      <div class="confirm-row">
-        <span class="confirm-label">Получатель</span>
-        <span class="confirm-value mono" id="confirm-to"></span>
-      </div>
-      <div class="confirm-row">
-        <span class="confirm-label">Сумма</span>
-        <span class="confirm-value" id="confirm-amount"></span>
-      </div>
-      <div class="confirm-row">
-        <span class="confirm-label">Актив</span>
-        <span class="confirm-value" id="confirm-asset"></span>
-      </div>
-      <div class="confirm-row">
-        <span class="confirm-label">Газ (оценка)</span>
-        <span class="confirm-value" id="confirm-gas-estimate"></span>
-      </div>
-      <div class="confirm-row total">
-        <span class="confirm-label">Итого</span>
-        <span class="confirm-value" id="confirm-total"></span>
-      </div>
-    </div>
-    <div class="row row-gap-16">
-      <button class="btn-ghost" data-onclick="cancelSend()">Отмена</button>
-      <button class="btn-primary" id="btn-confirm-send" data-onclick="confirmSend()">Подтвердить</button>
-    </div>
-    <div class="feedback-mount" data-feedback-prefix="confirm" data-feedback-types="error,status,success"></div>
-  </div>
-
-  <!-- ══ Экран 6: Добавить токен ══ -->
-  <div class="screen" id="screen-add-token">
-    <button class="back-btn" data-onclick="showScreen('screen-wallet')">← Назад</button>
-    <h2>Добавить ERC-20 токен</h2>
-    <div class="field">
-      <label>Адрес контракта</label>
-      <div class="token-address-row">
-        <input class="token-address-input" id="token-address" placeholder="0x…" data-oninput="onTokenAddrChange()" />
-        <button class="btn-ghost btn-sm fetch-token-btn" id="btn-fetch-token" data-onclick="fetchTokenInfo()"
-                disabled>
-          Загрузить ↓
-        </button>
-      </div>
-    </div>
-    <div class="token-form-row">
-      <div class="field">
-        <label>Символ</label>
-        <input id="token-symbol" placeholder="USDC" />
-      </div>
-      <div class="field">
-        <label>Decimals</label>
-        <input id="token-decimals" type="number" value="18" min="0" max="18" />
-      </div>
-    </div>
-    <button class="btn-primary" data-onclick="addToken()">Добавить токен</button>
-    <div class="feedback-mount" data-feedback-prefix="add-token" data-feedback-types="error,status"></div>
-  </div>
-
-  <!-- ══ Экран 7: Субаккаунт ══ -->
-  <div class="screen" id="screen-add-account">
-    <button class="back-btn" data-onclick="showScreen('screen-wallet')">← Назад</button>
-    <h2>Новый субаккаунт</h2>
-    <p class="sub">Субаккаунты выводятся из той же мнемоники по пути BIP-44. Введите пароль основного аккаунта.</p>
-    <div class="field">
-      <label>Пароль основного аккаунта</label>
-      <input type="password" id="add-account-password" placeholder="Введите пароль"
-             data-onkeydown="if(event.key==='Enter') addSubAccount()" />
-    </div>
-    <button class="btn-primary" id="btn-add-account" data-onclick="addSubAccount()">Создать субаккаунт</button>
-    <div class="feedback-mount" data-feedback-prefix="add-account" data-feedback-types="error,status"></div>
-  </div>
-
-  <!-- ══ Экран 8: dApp approval ══ -->
-  <div class="screen" id="screen-dapp-approval">
-    <div class="dapp-approval-header">
-      <div class="dapp-origin-row">
-        <div class="dapp-origin-badge">🌐</div>
-        <div class="dapp-origin-info">
-          <div class="dapp-origin" id="dapp-origin">—</div>
-          <div class="dapp-subtitle" id="dapp-subtitle">Загрузка…</div>
-        </div>
-      </div>
-      <div class="dapp-method-label" id="dapp-method-label">—</div>
-      <div class="dapp-expiry-timer" id="dapp-expiry-timer"></div>
-    </div>
-    <div class="dapp-approval-body" id="dapp-approval-body">
-      <p class="dapp-hint">Загрузка запроса…</p>
-    </div>
-    <div class="dapp-approval-actions" id="dapp-approval-actions">
-      <button type="button" class="btn-ghost" id="dapp-btn-reject">Отклонить</button>
-      <button type="button" class="btn-primary" id="dapp-btn-approve">Одобрить</button>
-    </div>
-  </div>
-
-  <!-- ══ Экран 9: Connected Sites ══ -->
-  <div class="screen" id="screen-connected-sites">
-    <button class="back-btn" data-onclick="showScreen('screen-wallet')">← Назад</button>
-    <h2>Подключённые сайты</h2>
-    <p class="sub">Сайты, которые имеют доступ к вашему адресу и могут запрашивать подпись.</p>
-    <div id="connected-sites-list" class="connected-sites-list"></div>
-  </div>
-
-</div><!-- #app -->
-<script src="../libs/ethers.umd.min.js"></script>
-<script src="../network-config.js"></script>
-<script src="../shared/wallet-core.js"></script>
-<script src="../shared/networks.js"></script>
-<script src="../shared/rpc-hosts.js"></script>
-<script src="modules/storage.js"></script>
-<script src="modules/ui-messages.js"></script>
-<script src="modules/avatar.js"></script>
-<script src="modules/clipboard.js"></script>
-<script src="modules/ui-templates.js"></script>
-<script src="modules/popup-state.js"></script>
-<script src="modules/network-state.js"></script>
-<script src="modules/tx-history-providers.js"></script>
-<script src="modules/tx-history.js"></script>
-<script src="modules/token-state.js"></script>
-<script src="modules/send-flow.js"></script>
-<script src="modules/ui-state.js"></script>
-<script src="modules/event-binder.js"></script>
-<script src="modules/dapp-approval.js"></script>
-<script src="modules/accounts.js"></script>
-<script src="modules/quiz-flow.js"></script>
-<script src="modules/wallet-create-import.js"></script>
-<script src="modules/refresh-loop.js"></script>
-<script src="modules/sw-messaging.js"></script>
-<script src="modules/unlock-flow.js"></script>
-<script src="modules/bootstrap.js"></script>
-<script src="popup.js"></script>
-</body>
+    <!-- #app -->
+    <script src="error-boundary.js"></script>
+    <script
+      src="../libs/ethers.umd.min.js"
+      integrity="sha384-eoEZatO/ymJi+LdBilp3xt/M9N9Lla2JlMVPZuk48Fg1YGl2Mc+vmsky+nkOtlSi"
+      crossorigin="anonymous"
+    ></script>
+    <script src="popup.bundle.js"></script>
+  </body>
 </html>

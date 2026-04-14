@@ -1,13 +1,7 @@
-(function initWalletNetworks(root, factory) {
-  const api = factory();
-  root.WolfWalletNetworks = api;
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
-  }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function factory() {
+'use strict';
+(() => {
   const DEFAULT_NETWORK_KEY = 'eth-sepolia';
   const DEFAULT_CHAIN_KEY = 'ethereum';
-
   const BASE_NETWORKS = {
     'eth-mainnet': {
       chain: 'ethereum',
@@ -34,9 +28,8 @@
       defaultRpcUrl: 'https://bsc-rpc.publicnode.com',
     },
   };
-
   function getNetworkConfigs(rpcDefaults = {}) {
-    const defaults = (rpcDefaults && typeof rpcDefaults === 'object') ? rpcDefaults : {};
+    const defaults = rpcDefaults && typeof rpcDefaults === 'object' ? rpcDefaults : {};
     const out = {};
     Object.entries(BASE_NETWORKS).forEach(([key, cfg]) => {
       out[key] = {
@@ -46,11 +39,16 @@
     });
     return out;
   }
-
-  return {
+  const WolfWalletNetworks = {
     BASE_NETWORKS,
     DEFAULT_CHAIN_KEY,
     DEFAULT_NETWORK_KEY,
     getNetworkConfigs,
   };
-});
+  if (typeof globalThis !== 'undefined') {
+    globalThis.WolfWalletNetworks = WolfWalletNetworks;
+  }
+  if (typeof module === 'object' && module.exports) {
+    module.exports = WolfWalletNetworks;
+  }
+})();

@@ -8,4 +8,16 @@ module.exports = defineConfig({
     browserName: 'chromium',
     headless: true,
   },
+  projects: [
+    {
+      name: 'mocked',
+      testMatch: /^(?!.*extension-smoke).*\.spec\.js$/,
+      use: { headless: true },
+    },
+    {
+      name: 'extension',
+      testMatch: /extension-smoke\.spec\.js$/,
+      use: { headless: false },
+    },
+  ],
 });

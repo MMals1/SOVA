@@ -1,0 +1,339 @@
+/* ── dApp approval screen ──────────────────────────────────────── */
+#screen-dapp-approval {
+  padding: 20px 20px 16px;
+}
+.dapp-approval-header {
+  border-bottom: 1px solid #22222e;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.dapp-origin-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.dapp-origin-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #1a1a24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 1px solid #2a2a36;
+}
+.dapp-origin-info {
+  flex: 1;
+  min-width: 0;
+}
+.dapp-origin {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e0e0e0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dapp-subtitle {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+.dapp-method-label {
+  font-size: 14px;
+  color: #3b82f6;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.dapp-expiry-timer {
+  font-size: 10px;
+  color: #666;
+  margin-top: 4px;
+}
+.dapp-approval-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 2px;
+  font-size: 12px;
+}
+.dapp-approval-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #22222e;
+  margin-top: 8px;
+}
+.dapp-approval-actions button {
+  flex: 1;
+  margin: 0;
+}
+.dapp-hint {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+}
+.dapp-kv {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #1a1a24;
+  gap: 12px;
+  font-size: 12px;
+}
+.dapp-kv:last-child {
+  border-bottom: none;
+}
+.dapp-k {
+  color: #888;
+  flex-shrink: 0;
+}
+.dapp-v {
+  color: #e0e0e0;
+  text-align: right;
+  word-break: break-all;
+  min-width: 0;
+}
+.dapp-kv-label {
+  color: #888;
+  font-size: 11px;
+  margin: 10px 0 4px;
+}
+.dapp-message-pre {
+  background: #0e0e16;
+  border: 1px solid #22222e;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #d0d0d0;
+}
+.dapp-warn-box {
+  background: #2a1f10;
+  border: 1px solid #5a3e10;
+  color: #f5a623;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-top: 10px;
+}
+.dapp-warn-box.dapp-warn-danger {
+  background: #2a1016;
+  border-color: #5a1028;
+  color: #f87171;
+}
+.dapp-tree {
+  background: #0e0e16;
+  border: 1px solid #22222e;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+.dapp-tree-title {
+  font-size: 11px;
+  color: #3b82f6;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dapp-tree-nested {
+  padding-left: 10px;
+  margin-top: 4px;
+  border-left: 2px solid #22222e;
+}
+.dapp-tree-key {
+  font-size: 11px;
+  color: #888;
+  margin: 4px 0 2px;
+}
+.dapp-data-toggle {
+  margin-top: 10px;
+  background: #0e0e16;
+  border: 1px solid #22222e;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.dapp-data-toggle summary {
+  cursor: pointer;
+  color: #888;
+  font-size: 11px;
+  user-select: none;
+}
+.dapp-data-pre {
+  margin-top: 6px;
+  max-height: 120px;
+  overflow: auto;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #d0d0d0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.dapp-accounts-list {
+  background: #0e0e16;
+  border: 1px solid #22222e;
+  border-radius: 10px;
+  padding: 4px;
+  margin: 6px 0 10px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.dapp-account-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  margin: 2px 0;
+  transition: background 0.12s;
+}
+.dapp-account-row:hover {
+  background: #161622;
+}
+.dapp-account-row input[type='radio'],
+.dapp-account-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+.dapp-account-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.dapp-account-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+.dapp-account-lock {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  border: 1.5px solid #f59e0b;
+  border-radius: 3px;
+  position: relative;
+  flex-shrink: 0;
+}
+.dapp-account-lock::before {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 5px;
+  border: 1.5px solid #f59e0b;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.dapp-account-addr {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ── Connected sites screen ──────────────────────────────────── */
+.connected-sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.connected-site-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0e0e16;
+  border: 1px solid #22222e;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.connected-site-info {
+  flex: 1;
+  min-width: 0;
+}
+.connected-site-domain {
+  font-size: 12px;
+  color: #e0e0e0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.connected-site-addrs {
+  font-size: 10px;
+  color: #888;
+  margin-top: 3px;
+  font-family: ui-monospace, monospace;
+}
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 11px;
+  width: auto;
+  margin: 0;
+}
+.btn-danger.btn-sm {
+  background: #2a1016;
+  color: #f87171;
+  border: 1px solid #5a1028;
+}
+.btn-danger.btn-sm:hover {
+  background: #3a1624;
+}
+
+/* ── dApp inline unlock prompt ───────────────────────────────── */
+.dapp-unlock-prompt {
+  margin-top: 12px;
+  padding: 12px;
+  background: #141420;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+}
+.dapp-unlock-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.dapp-unlock-label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dapp-unlock-input {
+  background: #0e0e16;
+  border: 1px solid #22222e;
+  border-radius: 8px;
+  padding: 9px 11px;
+  color: #e0e0e0;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.dapp-unlock-input:focus {
+  border-color: #3b82f6;
+}
+.dapp-unlock-error {
+  color: #f87171;
+  font-size: 11px;
+  margin-top: 6px;
+  min-height: 14px;
+}

@@ -1,0 +1,623 @@
+/* ═══════════════════════════════════════════════════════════════════
+   SOVA BANK v5 — COMPONENTS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Status Tag ─────────────────────────────────────────────────── */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--rF);
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.status-tag.ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid var(--ok-b);
+}
+.status-tag.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-b);
+}
+.status-tag.err {
+  background: var(--err-bg);
+  color: var(--err);
+  border: 1px solid var(--err-b);
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.status-tag.ok .status-dot {
+  animation: blink-dot 2.4s ease-in-out infinite;
+}
+@keyframes blink-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.65);
+  }
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  font-family: var(--ff);
+  border: none;
+  background: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--r2);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--tn);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+/* Subtle shimmer on hover — no rainbow gradient */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 55%);
+  opacity: 0;
+  transition: opacity var(--tf);
+}
+.btn:hover::after {
+  opacity: 1;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--a);
+  color: #fff;
+  border-color: var(--a-d);
+}
+.btn-primary:hover {
+  background: var(--a-h);
+  box-shadow: 0 2px 12px var(--a-glow);
+  transform: translateY(-1px);
+  border-color: var(--a-h);
+}
+.btn-primary:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--t1);
+  border-color: var(--b1);
+}
+.btn-ghost:hover {
+  background: var(--s2);
+  border-color: var(--b2);
+  color: var(--t0);
+}
+.btn-ghost:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: var(--err);
+  color: #fff;
+}
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 11px;
+  border-radius: var(--r2);
+}
+.btn-xs {
+  padding: 3px 9px;
+  font-size: 10px;
+  border-radius: var(--r1);
+}
+.btn-full {
+  width: 100%;
+}
+
+.btn-pill {
+  padding: 5px 12px;
+  border-radius: var(--rF);
+  border: 1px solid var(--b1);
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--fm);
+  transition: all var(--tf);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-pill:hover {
+  background: var(--s2);
+  border-color: var(--b2);
+  color: var(--t0);
+}
+.btn-pill.active {
+  background: var(--a-sub);
+  border-color: var(--a);
+  color: var(--t-accent);
+}
+
+/* ── MAX Button ─────────────────────────────────────────────────── */
+.btn-max {
+  padding: 0 11px;
+  flex-shrink: 0;
+  background: var(--a-sub);
+  color: var(--t-accent);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--r2);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--fm);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all var(--tf);
+}
+.btn-max:hover {
+  background: var(--a);
+  border-color: var(--a);
+  color: #fff;
+}
+
+/* ── Card ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--s0);
+  border: 1px solid var(--b0);
+  border-radius: var(--r4);
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--tn);
+}
+/* Hover: just lighten the border — no glowing line */
+.card:hover {
+  border-color: var(--b1);
+}
+
+/* Functional glow variant — used sparingly */
+.card-glow {
+  box-shadow: 0 0 0 1px var(--b0);
+}
+.card-glow:hover {
+  box-shadow:
+    0 0 0 1px var(--b1),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t2);
+  margin-bottom: 16px;
+}
+.card-head svg,
+.card-head img {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.card-head .badge-tag {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--rF);
+  background: var(--a-sub);
+  color: var(--t-accent);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* ── Form ───────────────────────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--t2);
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.field-note {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--t2);
+}
+input,
+select {
+  background: var(--s1);
+  border: 1px solid var(--b0);
+  border-radius: var(--r2);
+  padding: 9px 12px;
+  color: var(--t0);
+  font-family: var(--fm);
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  transition: all var(--tf);
+}
+input:focus,
+select:focus {
+  border-color: var(--a);
+  background: var(--s2);
+  box-shadow: 0 0 0 2px var(--a-sub);
+}
+input::placeholder {
+  color: var(--t3);
+}
+.amount-wrap {
+  display: flex;
+  gap: 5px;
+  align-items: stretch;
+}
+.amount-wrap input {
+  flex: 1;
+}
+
+/* ── Token Selector ─────────────────────────────────────────────── */
+.token-seg {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.token-seg button {
+  padding: 5px 11px;
+  border-radius: var(--r2);
+  border: 1px solid var(--b0);
+  background: var(--s1);
+  color: var(--t2);
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--tf);
+}
+.token-seg button:hover {
+  border-color: var(--b1);
+  background: var(--s2);
+  color: var(--t0);
+}
+.token-seg button.active {
+  border-color: var(--a);
+  background: var(--a-sub);
+  color: var(--t-accent);
+}
+.token-seg button img {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+/* ── APY Badge ──────────────────────────────────────────────────── */
+.apy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--rF);
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--a-sub);
+  color: var(--t-accent);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.apy-badge.green {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: var(--ok-b);
+}
+
+/* ── Progress Steps ─────────────────────────────────────────────── */
+.steps {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--t3);
+}
+.step.active {
+  color: var(--warn);
+}
+.step.done {
+  color: var(--ok);
+}
+.step-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--b1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all var(--tn);
+}
+.step.active .step-dot {
+  border-color: var(--warn);
+  color: var(--warn);
+  animation: step-pulse 1.8s infinite;
+}
+@keyframes step-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0);
+  }
+}
+.step.done .step-dot {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--bg);
+}
+.step-line {
+  flex: 1;
+  height: 1px;
+  background: var(--b0);
+  margin: 0 6px;
+  min-width: 16px;
+  border-radius: 1px;
+  transition: background var(--ts);
+}
+.step-line.done {
+  background: var(--ok);
+  opacity: 0.4;
+}
+
+/* ── Result Box ─────────────────────────────────────────────────── */
+.result {
+  background: var(--s1);
+  border: 1px solid var(--b0);
+  border-radius: var(--r2);
+  padding: 9px 12px;
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--t2);
+  word-break: break-all;
+  min-height: 34px;
+  max-height: 140px;
+  overflow-y: auto;
+  line-height: 1.55;
+  transition: all var(--tn);
+}
+.result.ok {
+  border-color: var(--ok-b);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.result.err {
+  border-color: var(--err-b);
+  background: var(--err-bg);
+  color: var(--err);
+}
+.result a {
+  color: var(--a);
+  text-decoration: none;
+}
+.result a:hover {
+  text-decoration: underline;
+}
+
+/* ── Stat Row ───────────────────────────────────────────────────── */
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--b0);
+}
+.stat-row:last-child {
+  border-bottom: none;
+}
+.stat-lbl {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--t2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.stat-val {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  min-width: 0;
+  word-break: break-all;
+}
+
+/* Toggle Switch */
+.toggle {
+  width: 34px;
+  height: 18px;
+  background: var(--s3);
+  border: 1px solid var(--b1);
+  border-radius: var(--rF);
+  position: relative;
+  cursor: pointer;
+  transition: all var(--tn);
+  flex-shrink: 0;
+}
+.toggle.on {
+  background: var(--a);
+  border-color: var(--a);
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--t2);
+  transition: all var(--tn);
+}
+.toggle.on::after {
+  left: 18px;
+  background: #fff;
+}
+
+/* ── Shimmer ────────────────────────────────────────────────────── */
+.shimmer {
+  background: linear-gradient(90deg, var(--s1) 0%, var(--s2) 40%, var(--s1) 80%);
+  background-size: 300% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  border-radius: var(--r1);
+  color: transparent !important;
+  display: inline-block;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100%;
+  }
+  100% {
+    background-position: -100%;
+  }
+}
+
+/* ── Toast ──────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: none;
+}
+.toast {
+  padding: 12px 16px;
+  border-radius: var(--r3);
+  font-family: var(--fm);
+  font-size: 12px;
+  pointer-events: auto;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
+  animation: toast-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast.ok {
+  background: var(--s1);
+  color: var(--ok);
+  border: 1px solid var(--ok-b);
+}
+.toast.err {
+  background: var(--s1);
+  color: var(--err);
+  border: 1px solid var(--err-b);
+}
+.toast.info {
+  background: var(--s1);
+  color: var(--t-accent);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ── Utility ────────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--b0);
+  margin: 4px 0;
+}
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ml-auto {
+  margin-left: auto;
+}
+.text-ok {
+  color: var(--ok);
+}
+.text-warn {
+  color: var(--warn);
+}
+.text-err {
+  color: var(--err);
+}
+.text-accent {
+  color: var(--t-accent);
+}
+.text-muted {
+  color: var(--t2);
+}
+.text-mono {
+  font-family: var(--fm);
+}
+.full {
+  width: 100%;
+}

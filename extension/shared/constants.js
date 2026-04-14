@@ -1,0 +1,26 @@
+'use strict';
+(() => {
+  const LOCK_ALARM = 'auto-lock';
+  const LOCK_DELAY_MIN_DEFAULT = 5;
+  const LOCK_DELAY_OPTIONS = [1, 5, 15, 30];
+  const LOCKOUT_KEY = 'security:lockout';
+  const MAX_LOCKOUT_MS = 15 * 60 * 1e3;
+  const DAPP_REQUEST_TTL_MS = 60 * 1e3;
+  const MAX_CONNECTED_ORIGINS = 100;
+  const CONNECTED_ORIGIN_TTL_MS = 90 * 24 * 60 * 60 * 1e3;
+  const MAX_PENDING_APPROVALS_GLOBAL = 20;
+  const MAX_UNLOCKED_WALLETS = 20;
+  const AUDIT_LOG_MAX = 500;
+  const AUDIT_LOG_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
+  const SW_TIMEOUT_MS = 15e3;
+  const AUTO_REFRESH_MIN_INTERVAL_MS = 1e4;
+  const AUTO_REFRESH_FALLBACK_MS = 3e4;
+  const LOGO_LOAD_TIMEOUT_MS = 3e3;
+  const TX_HISTORY_LIMIT = 1e3;
+  const TX_PAGE_SIZE = 10;
+  const TX_INITIAL_MAX_COUNT = '0x3e8';
+  const TX_INCREMENTAL_MAX_COUNT = '0x64';
+  const REST_DEFAULT_OFFSET = 200;
+  const DEFAULT_DAILY_LIMIT_ETH = 0.1;
+  const QUIZ_WORD_COUNT = 5;
+})();

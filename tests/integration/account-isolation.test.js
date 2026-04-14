@@ -46,8 +46,12 @@ describe('account isolation', () => {
         ],
       };
 
-      expect(history[`eth-mainnet:${accountA.address.toLowerCase()}`][0].from).toBe(accountA.address);
-      expect(history[`eth-mainnet:${accountB.address.toLowerCase()}`][0].from).toBe(accountB.address);
+      expect(history[`eth-mainnet:${accountA.address.toLowerCase()}`][0].from).toBe(
+        accountA.address,
+      );
+      expect(history[`eth-mainnet:${accountB.address.toLowerCase()}`][0].from).toBe(
+        accountB.address,
+      );
     });
 
     it('token list is isolated per account per network', () => {
@@ -60,8 +64,10 @@ describe('account isolation', () => {
         },
       };
 
-      const tokensA = tokensByNetworkAndAccount[`eth-mainnet:${accountA.address.toLowerCase()}`]['eth-mainnet'];
-      const tokensB = tokensByNetworkAndAccount[`eth-mainnet:${accountB.address.toLowerCase()}`]['eth-mainnet'];
+      const tokensA =
+        tokensByNetworkAndAccount[`eth-mainnet:${accountA.address.toLowerCase()}`]['eth-mainnet'];
+      const tokensB =
+        tokensByNetworkAndAccount[`eth-mainnet:${accountB.address.toLowerCase()}`]['eth-mainnet'];
 
       expect(tokensA[0].symbol).toBe('USDC');
       expect(tokensB[0].symbol).toBe('DAI');
@@ -155,8 +161,12 @@ describe('account isolation', () => {
   describe('unlock state per account', () => {
     it('multiple accounts can be unlocked', () => {
       const unlockedWallets = {
-        [accountA.address.toLowerCase()]: { /* wallet A */ },
-        [accountB.address.toLowerCase()]: { /* wallet B */ },
+        [accountA.address.toLowerCase()]: {
+          /* wallet A */
+        },
+        [accountB.address.toLowerCase()]: {
+          /* wallet B */
+        },
       };
 
       expect(Object.keys(unlockedWallets)).toHaveLength(2);
@@ -164,7 +174,7 @@ describe('account isolation', () => {
 
     it('only one account active at a time', () => {
       let activeAddress = accountA.address.toLowerCase();
-      let activeWallet = { address: activeAddress };
+      const activeWallet = { address: activeAddress };
 
       expect(activeWallet.address).toBe(accountA.address.toLowerCase());
 
@@ -194,7 +204,7 @@ describe('account isolation', () => {
         address: '0xNEWNEWNEWNEWNEWNEWNEWNEWNEWNEWNEWNEWNEW',
       };
 
-      expect(accounts.every(a => a.address !== newAccount.address)).toBe(true);
+      expect(accounts.every((a) => a.address !== newAccount.address)).toBe(true);
     });
 
     it('imported account is added to list', () => {
@@ -215,7 +225,9 @@ describe('account isolation', () => {
         address: accountA.address, // Same as A
       };
 
-      const isDuplicate = accounts.some(a => a.address.toLowerCase() === duplicateAttempt.address.toLowerCase());
+      const isDuplicate = accounts.some(
+        (a) => a.address.toLowerCase() === duplicateAttempt.address.toLowerCase(),
+      );
       expect(isDuplicate).toBe(true);
     });
   });
@@ -232,10 +244,8 @@ describe('network-token scoping', () => {
           { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC' },
           { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', symbol: 'USDT' },
         ],
-        'eth-sepolia': [
-          { address: '0x1111111111111111111111111111111111111111', symbol: 'sUSDC' },
-        ],
-        'bsc': [],
+        'eth-sepolia': [{ address: '0x1111111111111111111111111111111111111111', symbol: 'sUSDC' }],
+        bsc: [],
       },
     };
   });
@@ -284,11 +294,11 @@ describe('network-token scoping', () => {
     it('removes token only from selected network', () => {
       const usdcAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
       state.tokensByNetwork['eth-mainnet'] = state.tokensByNetwork['eth-mainnet'].filter(
-        t => t.address !== usdcAddress
+        (t) => t.address !== usdcAddress,
       );
 
       expect(state.tokensByNetwork['eth-mainnet']).not.toContainEqual(
-        expect.objectContaining({ symbol: 'USDC' })
+        expect.objectContaining({ symbol: 'USDC' }),
       );
     });
   });

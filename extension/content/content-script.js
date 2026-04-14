@@ -19,7 +19,9 @@
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('inpage/provider.js');
     script.setAttribute('data-sova-inpage', '1');
-    script.onload = () => { script.remove(); };
+    script.onload = () => {
+      script.remove();
+    };
     script.onerror = () => {
       console.error('[SOVA] failed to load inpage provider');
       script.remove();
@@ -43,7 +45,7 @@
     try {
       chrome.runtime.sendMessage(
         {
-          type: 'dapp-request',
+          type: MessageType.DAPP_REQUEST,
           origin,
           payload: {
             id,
@@ -69,7 +71,7 @@
           } else {
             postToInpage(id, response.result);
           }
-        }
+        },
       );
     } catch (err) {
       postToInpage(id, null, { code: 4100, message: err.message || 'sendMessage failed' });
@@ -99,14 +101,22 @@
       if (!sender || sender.id !== chrome.runtime.id) return;
       if (sender.tab) return;
       // Whitelist allowed event types
-      const ALLOWED_EVENTS = new Set(['accountsChanged', 'chainChanged', 'connect', 'disconnect']);
-      if (msg.type === 'dapp-event' && msg.event && ALLOWED_EVENTS.has(msg.event)) {
+      const ALLOWED_EVENTS = new Set([
+        BroadcastEvent.ACCOUNTS_CHANGED,
+        BroadcastEvent.CHAIN_CHANGED,
+        BroadcastEvent.CONNECT,
+        BroadcastEvent.DISCONNECT,
+      ]);
+      if (msg.type === MessageType.DAPP_EVENT && msg.event && ALLOWED_EVENTS.has(msg.event)) {
         try {
-          window.postMessage({
-            target: INPAGE_TARGET,
-            event: msg.event,
-            data: msg.data,
-          }, window.location.origin);
+          window.postMessage(
+            {
+              target: INPAGE_TARGET,
+              event: msg.event,
+              data: msg.data,
+            },
+            window.location.origin,
+          );
         } catch (err) {
           console.error('[SOVA] broadcast to inpage failed', err);
         }

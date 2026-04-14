@@ -4,13 +4,7 @@
   "version": "2.0.0",
   "description": "Некастодиальный Ethereum кошелёк с dApp-коннектом · Sepolia testnet + Mainnet + BNB",
 
-  "permissions": [
-    "storage",
-    "alarms",
-    "clipboardWrite",
-    "notifications",
-    "activeTab"
-  ],
+  "permissions": ["storage", "alarms", "clipboardWrite", "notifications", "activeTab"],
 
   "host_permissions": [
     "https://*.g.alchemy.com/*",
@@ -24,7 +18,8 @@
     "https://*.1rpc.io/*",
     "https://eth.blockscout.com/*",
     "https://eth-sepolia.blockscout.com/*",
-    "https://api.etherscan.io/*"
+    "https://api.etherscan.io/*",
+    "https://deep-index.moralis.io/*"
   ],
 
   "action": {
@@ -51,12 +46,8 @@
 
   "content_scripts": [
     {
-      "matches": [
-        "https://*/*",
-        "http://localhost/*",
-        "http://127.0.0.1/*"
-      ],
-      "js": ["content/content-script.js"],
+      "matches": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["shared/message-types.js", "content/content-script.js"],
       "run_at": "document_start",
       "all_frames": false,
       "world": "ISOLATED"
@@ -66,15 +57,11 @@
   "web_accessible_resources": [
     {
       "resources": ["inpage/provider.js"],
-      "matches": [
-        "https://*/*",
-        "http://localhost/*",
-        "http://127.0.0.1/*"
-      ]
+      "matches": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"]
     }
   ],
 
   "content_security_policy": {
-    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://eth-sepolia.g.alchemy.com https://*.g.alchemy.com https://*.infura.io https://*.quiknode.pro https://*.publicnode.com https://*.drpc.org https://*.llamarpc.com https://*.ankr.com https://*.chainstack.com https://*.1rpc.io https://eth.blockscout.com https://eth-sepolia.blockscout.com https://api.etherscan.io; img-src 'self' https://raw.githubusercontent.com https://tokens.1inch.io https://tokens-data.1inch.io data:; object-src 'none'; frame-ancestors 'none'; form-action 'none'"
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://eth-sepolia.g.alchemy.com https://*.g.alchemy.com https://*.infura.io https://*.quiknode.pro https://*.publicnode.com https://*.drpc.org https://*.llamarpc.com https://*.ankr.com https://*.chainstack.com https://*.1rpc.io https://eth.blockscout.com https://eth-sepolia.blockscout.com https://api.etherscan.io https://deep-index.moralis.io; img-src 'self' https://raw.githubusercontent.com https://tokens.1inch.io https://tokens-data.1inch.io data:; object-src 'none'; frame-ancestors 'none'; form-action 'none'"
   }
 }

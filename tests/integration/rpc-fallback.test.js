@@ -8,16 +8,11 @@ describe('RPC fallback mechanism', () => {
       rpcByNetwork: {
         'eth-mainnet': {
           custom: 'https://custom-rpc.com',
-          defaults: [
-            'https://ethereum-rpc.publicnode.com',
-            'https://eth1.lava.build',
-          ],
+          defaults: ['https://ethereum-rpc.publicnode.com', 'https://eth1.lava.build'],
         },
         'eth-sepolia': {
           custom: null,
-          defaults: [
-            'https://ethereum-sepolia-rpc.publicnode.com',
-          ],
+          defaults: ['https://ethereum-sepolia-rpc.publicnode.com'],
         },
       },
     };
@@ -104,7 +99,7 @@ describe('RPC fallback mechanism', () => {
 
   describe('exhaustion handling', () => {
     it('returns null after all RPCs exhausted', () => {
-      let current = rpcManager.getCurrentRPC('eth-sepolia');
+      const current = rpcManager.getCurrentRPC('eth-sepolia');
       expect(current).toBeDefined();
 
       // Try all defaults
@@ -137,11 +132,11 @@ describe('multi-popup consistency', () => {
     storageEmulator = {
       data: {},
       listeners: [],
-      
+
       get(keys, callback) {
         const result = {};
         if (Array.isArray(keys)) {
-          keys.forEach(k => {
+          keys.forEach((k) => {
             result[k] = this.data[k];
           });
         }
@@ -152,7 +147,7 @@ describe('multi-popup consistency', () => {
       set(items, callback) {
         Object.assign(this.data, items);
         // Notify listeners
-        this.listeners.forEach(listener => listener({ changes: items, areaName: 'local' }));
+        this.listeners.forEach((listener) => listener({ changes: items, areaName: 'local' }));
         if (callback) callback();
         return Promise.resolve();
       },
@@ -310,7 +305,7 @@ describe('service worker lifecycle', () => {
       },
 
       broadcastMessage(message) {
-        return Promise.all(this.messageHandlers.map(h => h(message)));
+        return Promise.all(this.messageHandlers.map((h) => h(message)));
       },
     };
   });
@@ -382,7 +377,9 @@ describe('service worker lifecycle', () => {
         started: false,
         activeWallet: null,
         messageHandlers: [],
-        start() { this.started = true; },
+        start() {
+          this.started = true;
+        },
       };
 
       expect(sw.activeWallet).toBeNull();

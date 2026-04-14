@@ -1,0 +1,48 @@
+/* ── Ledger (6.1) ──────────────────────────────────────────────── */
+.ledger-connection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+.ledger-status {
+  font-size: 13px;
+  flex: 1;
+}
+.ledger-status.connected {
+  color: #4ade80;
+}
+.ledger-address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.ledger-addr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: #1a1a26;
+  border-radius: 8px;
+}
+.ledger-addr-index {
+  font-size: 11px;
+  color: #888;
+  min-width: 22px;
+}
+.ledger-addr-text {
+  flex: 1;
+  font-size: 12px;
+  color: #c0c0c0;
+}
+.acct-item .ledger-badge {
+  font-size: 10px;
+  background: #2563eb22;
+  color: #60a5fa;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
