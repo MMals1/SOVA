@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@playwright/test": "^1.53.0",
+    "@playwright/test": "^1.59.1",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "esbuild": "^0.28.0",
