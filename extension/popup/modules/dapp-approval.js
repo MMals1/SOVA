@@ -143,8 +143,16 @@ async function handleRequest(id) {
     }
   }
 
-  // Если требуется unlock — добавляем inline поле пароля в конец body
-  if (request.needsUnlock && request.targetAddress != null && request.targetAccountIndex != null) {
+  // Если требуется unlock — добавляем inline поле пароля в конец body.
+  // Для eth_requestAccounts этого делать не надо: renderConnect уже сам
+  // показывает inline-поле пароля под выбранным заблокированным аккаунтом
+  // (id="dapp-connect-pw-input"). Дубль второго поля сбивал пользователя.
+  if (
+    request.needsUnlock &&
+    request.targetAddress != null &&
+    request.targetAccountIndex != null &&
+    request.method !== 'eth_requestAccounts'
+  ) {
     Render.renderUnlockPrompt(request);
     // Меняем лейбл кнопки Approve на "Разблокировать и одобрить"
     const approveBtn = Render.getEl('dapp-btn-approve');
@@ -159,8 +167,9 @@ async function handleRequest(id) {
       approveBtn.disabled = true;
       if (rejectBtn) rejectBtn.disabled = true;
 
-      // Если needsUnlock задан SW'ом (personal_sign, eth_sendTransaction, locked reconnect)
-      if (request.needsUnlock) {
+      // Если needsUnlock задан SW'ом (personal_sign, eth_sendTransaction, locked reconnect).
+      // Для eth_requestAccounts пароль собирается ниже через inline-поле в renderConnect.
+      if (request.needsUnlock && request.method !== 'eth_requestAccounts') {
         const pwInput = Render.getEl('dapp-unlock-password');
         let password = pwInput ? pwInput.value : '';
         const errEl = Render.getEl('dapp-unlock-error');
@@ -195,10 +204,11 @@ async function handleRequest(id) {
         }
         payload.addresses = addresses;
 
-        // ── Динамическая проверка: если выбранный аккаунт НЕ разблокирован,
-        // а request.needsUnlock не был задан SW'ом (новое подключение) —
-        // требуем ввод пароля прямо здесь ──
-        if (!request.needsUnlock && addresses.length > 0) {
+        // ── Если выбранный аккаунт заблокирован — требуем пароль.
+        // Работает и для свежего connect (needsUnlock=false), и для
+        // locked-reconnect (needsUnlock=true) — renderConnect в обоих случаях
+        // показывает inline-поле dapp-connect-pw-input на locked radio.
+        if (addresses.length > 0) {
           const selectedRb = document.querySelector('input[name="dapp-account-select"]:checked');
           const isLocked = selectedRb && selectedRb.dataset.unlocked === '0';
           if (isLocked) {

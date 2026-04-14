@@ -202,9 +202,18 @@ async function renderConnect(request, accounts, checkWalletUnlocked) {
   const list = document.createElement('div');
   list.className = 'dapp-accounts-list';
 
-  // Определяем active account index (тот что сейчас разблокирован в SW)
+  // Определяем preselect index.
+  // Если SW прислал targetAccountIndex (locked-reconnect: re-auth конкретного
+  // granted-аккаунта) — выбираем его, чтобы inline-поле пароля появилось сразу
+  // под нужной строкой. Иначе fallback на активный аккаунт popup'а.
   const PopupState = globalThis.WolfPopupSharedState || {};
   const activeIdx = PopupState.activeAccountIndex || 0;
+  const preselectIdx =
+    typeof request.targetAccountIndex === 'number' &&
+    request.targetAccountIndex >= 0 &&
+    request.targetAccountIndex < accounts.length
+      ? request.targetAccountIndex
+      : activeIdx;
 
   accounts.forEach((acct, idx) => {
     const row = document.createElement('label');
@@ -214,7 +223,7 @@ async function renderConnect(request, accounts, checkWalletUnlocked) {
     rb.type = 'radio';
     rb.name = 'dapp-account-select';
     rb.value = acct.address;
-    rb.checked = idx === activeIdx;
+    rb.checked = idx === preselectIdx;
     rb.dataset.role = 'dapp-account-cb';
     rb.dataset.accountIndex = String(idx);
     rb.dataset.unlocked = unlockStatuses[idx] ? '1' : '0';

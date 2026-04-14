@@ -45,6 +45,16 @@ body {
   display: flex;
 }
 
+/* dApp approval mode: suppress default screen-setup и сразу показываем
+   screen-dapp-approval до того, как JS-bootstrap успеет переключить экран.
+   html.dapp-mode выставляется inline-скриптом в <head> popup.html. */
+html.dapp-mode #screen-setup.active {
+  display: none;
+}
+html.dapp-mode #screen-dapp-approval {
+  display: flex;
+}
+
 /* Scrollbar */
 .screen::-webkit-scrollbar {
   width: 6px;

@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <title>SOVA Wallet</title>
     <link rel="stylesheet" href="popup.css" />
+    <script>
+      // Synchronous guard: если окно открыто как dApp approval (?request=<id>),
+      // сразу помечаем <html>, чтобы CSS скрыл дефолтный screen-setup и показал
+      // screen-dapp-approval до того, как async bootstrap выполнит showScreen().
+      // Без этого виден кратковременный flash начального экрана.
+      (function () {
+        try {
+          var qs = location.search || '';
+          if (qs.indexOf('request=') !== -1) {
+            document.documentElement.classList.add('dapp-mode');
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app">
