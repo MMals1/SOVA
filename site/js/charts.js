@@ -43,13 +43,24 @@ export function drawChart() {
   const canvas = document.getElementById('price-chart');
   if (!canvas) return;
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.parentElement.offsetWidth - 32;
+  // Берём реальную CSS-ширину canvas через getBoundingClientRect —
+  // это устойчиво к фулскрину, zoom'у и изменению размера окна, в отличие от
+  // parentElement.offsetWidth (которое может давать устаревшее значение во
+  // время layout thrashing и не учитывает собственные border/padding canvas).
+  const rect = canvas.getBoundingClientRect();
+  const W = Math.max(1, Math.floor(rect.width));
   const H_px = 140;
-  canvas.width = W * dpr;
-  canvas.height = H_px * dpr;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H_px + 'px';
+  // Сбрасываем буфер только если размер реально поменялся — без этого каждый
+  // вызов drawChart обнуляет context state (scale) и мешает.
+  const needResize = canvas.width !== W * dpr || canvas.height !== H_px * dpr;
+  if (needResize) {
+    canvas.width = W * dpr;
+    canvas.height = H_px * dpr;
+    canvas.style.height = H_px + 'px';
+    // style.width оставляем управляемым CSS (#price-chart { width: 100% }).
+  }
   const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
   const PAD_L = 8,
     PAD_R = 8,
@@ -298,6 +309,39 @@ export function updateRewardsCalc(apr, amount) {
 
 export function initCharts() {
   genPriceHistory();
+
+  // ── Resize handling ──
+  // Canvas с CSS width:100% и фиксированным drawing buffer не перерисовывается
+  // автоматически при изменении размера окна или переключении fullscreen.
+  // Без этого график визуально едет (текст плющится, позиции хэндлов не
+  // совпадают с реальным drag-target'ом). Навешиваем ResizeObserver на
+  // контейнер + window.resize как fallback для старых браузеров.
+  let resizeRaf = 0;
+  const scheduleRedraw = () => {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = 0;
+      drawChart();
+    });
+  };
+  const chartContainer = document.querySelector('.chart-container');
+  if (chartContainer && typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(scheduleRedraw);
+    ro.observe(chartContainer);
+  } else {
+    window.addEventListener('resize', scheduleRedraw);
+  }
+  // Fullscreen / DPR changes (external monitor swap) — тоже триггерят
+  // нужную перерисовку, даже если контейнер внешне не поменялся.
+  document.addEventListener('fullscreenchange', scheduleRedraw);
+  if (typeof window.matchMedia === 'function') {
+    try {
+      const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+      mq.addEventListener?.('change', scheduleRedraw);
+    } catch {
+      /* ignore — старые браузеры */
+    }
+  }
 
   // Canvas drag logic
   const chartCanvas = document.getElementById('price-chart');

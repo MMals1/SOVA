@@ -336,6 +336,9 @@ module.exports = [
         localStorage: 'readonly',
         history: 'readonly',
         clearTimeout: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        ResizeObserver: 'readonly',
       },
     },
     rules: {

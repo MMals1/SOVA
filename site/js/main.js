@@ -180,11 +180,13 @@ setInterval(() => {
   if (state.userAddress) loadAll();
 }, 30000);
 
-// Charts init
+// Charts init — initCharts() сам регистрирует ResizeObserver/fullscreenchange
+// и триггерит первую отрисовку, так что отдельный resize-listener и
+// setTimeout(drawChart) тут больше не нужны (иначе получаем двойные redraw'ы
+// на каждый ресайз, без debounce'а).
 window.addEventListener('load', () => {
   initCharts();
   drawILHeatmap();
   updateLPPreview();
-  setTimeout(drawChart, 100);
+  drawChart();
 });
-window.addEventListener('resize', drawChart);
